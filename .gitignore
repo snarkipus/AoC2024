@@ -1,0 +1,7 @@
+*.dSYM
+.DS_Store
+.vscode
+target
+main
+input*.txt
+.envrc
