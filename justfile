@@ -1,3 +1,5 @@
+set dotenv-load := true
+
 # Use `just work day-01 part1` to work on the specific binary for a specific day's problems
 work day part:
     cargo watch -w {{day}} -x "check -p {{day}}" -s "just test {{day}} {{part}}" -s "just lint {{day}}"
@@ -29,4 +31,4 @@ create day:
 #
 # get the input for a day's puzzle
 get-input day:
-    ./scripts/get-aoc-input.rs --day {{day}} --current-working-directory {{justfile_directory()}}
+    cargo run --manifest-path scripts/aoc-input/Cargo.toml -- --day {{day}} --current-working-directory {{justfile_directory()}}
