@@ -44,7 +44,6 @@ impl Multiplication {
     fn evaluate(&self) -> i32 {
         self.x * self.y
     }
-
 }
 
 const MAX_NUMBER_LENGTH: usize = 3;
@@ -52,7 +51,9 @@ const MAX_NUMBER_LENGTH: usize = 3;
 /// Validates input number format
 #[tracing::instrument]
 fn valid_number(input: &str) -> IResult<&str, &str> {
-    verify(digit1, |num: &str| !num.is_empty() && num.len() <= MAX_NUMBER_LENGTH)(input)
+    verify(digit1, |num: &str| {
+        !num.is_empty() && num.len() <= MAX_NUMBER_LENGTH
+    })(input)
 }
 
 /// Parses a multiplication expression
@@ -100,7 +101,7 @@ pub fn parse_multiplication(input: &str) -> Result<Vec<String>> {
 #[tracing::instrument]
 pub fn process(input: &str) -> Result<String> {
     let expressions = parse_multiplication(input)?;
-    
+
     let result: i32 = expressions
         .iter()
         .map(|expr| Multiplication::from_str(expr))
