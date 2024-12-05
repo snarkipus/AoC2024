@@ -7,14 +7,14 @@ type Matrix = Vec<Vec<u8>>;
 /// Represents possible directions for word search
 #[derive(Debug, Copy, Clone)]
 enum Direction {
-    WestToEast,    // →
-    EastToWest,    // ←
-    NorthToSouth,  // ↓
-    SouthToNorth,  // ↑
-    SWtoNE,        // ↗
-    NEtoSW,        // ↙
-    NWtoSE,        // ↘
-    SEtoNW,        // ↖
+    WestToEast,   // →
+    EastToWest,   // ←
+    NorthToSouth, // ↓
+    SouthToNorth, // ↑
+    SWtoNE,       // ↗
+    NEtoSW,       // ↙
+    NWtoSE,       // ↘
+    SEtoNW,       // ↖
 }
 
 /// Process input string to find occurrences of "XMAS" in all directions
@@ -22,10 +22,7 @@ enum Direction {
 #[tracing::instrument]
 pub fn process(input: &str) -> miette::Result<String> {
     // Parse input into byte matrix
-    let data: Matrix = input
-        .lines()
-        .map(|line| line.bytes().collect())
-        .collect();
+    let data: Matrix = input.lines().map(|line| line.bytes().collect()).collect();
 
     if data.is_empty() {
         return Ok("0".to_string());
@@ -41,7 +38,7 @@ pub fn process(input: &str) -> miette::Result<String> {
         Direction::NWtoSE,
         Direction::SEtoNW,
     ];
-    
+
     // Process all directions in parallel
     let total = directions
         .par_iter()
@@ -80,17 +77,14 @@ fn pad_diagonal(matrix: &[Vec<u8>], reverse: bool) -> Matrix {
             } else {
                 (i, size - i - 1)
             };
-            [
-                vec![b' '; left],
-                row.to_vec(),
-                vec![b' '; right]
-            ].concat()
+            [vec![b' '; left], row.to_vec(), vec![b' '; right]].concat()
         })
         .collect()
 }
 
 fn reverse_matrix(matrix: &[Vec<u8>]) -> Matrix {
-    matrix.iter()
+    matrix
+        .iter()
         .map(|row| {
             let mut rev = row.clone();
             rev.reverse();
@@ -100,15 +94,13 @@ fn reverse_matrix(matrix: &[Vec<u8>]) -> Matrix {
 }
 
 fn transpose_matrix(matrix: &[Vec<u8>]) -> Matrix {
-    if matrix.is_empty() { return vec![]; }
-    
+    if matrix.is_empty() {
+        return vec![];
+    }
+
     let cols = matrix[0].len();
     (0..cols)
-        .map(|col| {
-            matrix.iter()
-                .map(|row| row[col])
-                .collect()
-        })
+        .map(|col| matrix.iter().map(|row| row[col]).collect())
         .collect()
 }
 
