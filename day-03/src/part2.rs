@@ -96,7 +96,7 @@ fn parse_multiplication(input: &str) -> Result<Vec<String>> {
             remaining = rest;
             continue;
         }
-        
+
         if let Ok((rest, _)) = tag::<&str, &str, nom::error::Error<&str>>("do()")(remaining) {
             state.process_next = true;
             remaining = rest;
@@ -143,7 +143,10 @@ mod tests {
     #[case("don't()mul(2,4)", "0")]
     #[case("abcdon't()mul(2,4)", "0")]
     #[case("do()mul(2,4)don't()mul(3,3)", "8")]
-    #[case("xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))", "48")]
+    #[case(
+        "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))",
+        "48"
+    )]
     fn test_process_cases(#[case] input: &str, #[case] expected: &str) -> Result<()> {
         assert_eq!(expected, process(input)?);
         Ok(())

@@ -1,32 +1,88 @@
-use miette::*; 
-struct Rule {
-    page: usize,
-    constraint: Option<Vec<usize>>,
-}
+use miette::*;
+use std::collections::HashMap;
 
-impl Rule {
-    fn new(page: usize) -> Self {
-        Self {
-            page,
-            constraint: None,
-        }
-    }
-}
+type Rules = HashMap<usize, Vec<usize>>;
 
 #[tracing::instrument]
 pub fn process(input: &str) -> miette::Result<String> {
-    let data = input
-        .lines()
-        .collect::<Vec<&str>>();
+    let data = input.lines().collect::<Vec<&str>>();
 
-    let [rules, updates] = data
-        .split(|line| line.is_empty())
-        .collect::<Vec<_>>()[..]
-        else { return Err(miette!("Invalid input")) };
+    let [rules, updates] = data.split(|line| line.is_empty()).collect::<Vec<_>>()[..] else {
+        return Err(miette!("Invalid input"));
+    };
 
-    dbg!(rules, updates);
+    let pre_rules = create_rules(rules, false)?;
+    let post_rules = create_rules(rules, true)?;
+    let valid_updates = check_updates(updates, &pre_rules, &post_rules)?;
 
-    Ok("142".to_string())
+    let total = valid_updates
+        .iter()
+        .map(|update| update[update.len() / 2])
+        .sum::<usize>();
+
+    Ok(total.to_string())
+}
+
+fn create_rules(data: &[&str], reverse: bool) -> Result<Rules, Report> {
+    let mut rules: Rules = HashMap::new();
+
+    for rule in data {
+        let parts: Vec<_> = rule.split('|').collect();
+        if parts.len() != 2 {
+            return Err(miette!("Invalid rule"));
+        }
+
+        let (key, value) = if reverse {
+            (parts[1], parts[0])
+        } else {
+            (parts[0], parts[1])
+        };
+
+        let key = key.parse::<usize>().into_diagnostic()?;
+        let value = value.parse::<usize>().into_diagnostic()?;
+        rules.entry(key).or_default().push(value);
+    }
+
+    Ok(rules)
+}
+
+#[tracing::instrument(skip(data, pre_rules, post_rules))]
+fn check_updates(
+    data: &[&str],
+    pre_rules: &Rules,
+    post_rules: &Rules,
+) -> Result<Vec<Vec<usize>>, Report> {
+    let valid_updates = data
+        .iter()
+        .filter_map(|update_str| {
+            let update = update_str
+                .split(',')
+                .map(|n| n.parse::<usize>().into_diagnostic())
+                .collect::<Result<Vec<usize>, _>>()
+                .ok()?;
+
+            let is_valid = update.windows(2).all(|window| {
+                if let [page_1, page_2] = window {
+                    pre_rules
+                        .get(page_1)
+                        .map_or(true, |constraints| constraints.contains(page_2))
+                        && post_rules
+                            .get(page_2)
+                            .map_or(true, |constraints| constraints.contains(page_1))
+                } else {
+                    true
+                }
+            });
+
+            if is_valid {
+                Some(update)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<Vec<usize>>>();
+
+    Ok(valid_updates)
 }
 
 #[cfg(test)]
@@ -64,6 +120,22 @@ mod tests {
 61,13,29
 97,13,75,29,47";
         assert_eq!("143", process(input)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_rules() -> miette::Result<()> {
+        let input = ["1|2", "1|3", "2|3", "2|4", "3|4", "4|5"];
+        let expected = {
+            let mut rules = HashMap::new();
+            rules.insert(1, vec![2, 3]);
+            rules.insert(2, vec![3, 4]);
+            rules.insert(3, vec![4]);
+            rules.insert(4, vec![5]);
+            rules
+        };
+
+        assert_eq!(expected, create_rules(&input, false)?);
         Ok(())
     }
 }

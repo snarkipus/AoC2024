@@ -92,9 +92,13 @@ impl MatrixOps {
     fn transform_matrix(matrix: &[Vec<u8>], direction: Direction) -> Matrix {
         match direction {
             Direction::SWtoNE => Self::transpose_matrix(&Self::pad_diagonal(matrix, false)),
-            Direction::NEtoSW => Self::reverse_matrix(&Self::transpose_matrix(&Self::pad_diagonal(matrix, false))),
+            Direction::NEtoSW => {
+                Self::reverse_matrix(&Self::transpose_matrix(&Self::pad_diagonal(matrix, false)))
+            }
             Direction::NWtoSE => Self::transpose_matrix(&Self::pad_diagonal(matrix, true)),
-            Direction::SEtoNW => Self::reverse_matrix(&Self::transpose_matrix(&Self::pad_diagonal(matrix, true))),
+            Direction::SEtoNW => {
+                Self::reverse_matrix(&Self::transpose_matrix(&Self::pad_diagonal(matrix, true)))
+            }
         }
     }
 
@@ -115,7 +119,10 @@ impl MatrixOps {
     }
 
     fn reverse_matrix(matrix: &[Vec<u8>]) -> Matrix {
-        matrix.iter().map(|row| row.iter().rev().copied().collect()).collect()
+        matrix
+            .iter()
+            .map(|row| row.iter().rev().copied().collect())
+            .collect()
     }
 
     fn transpose_matrix(matrix: &[Vec<u8>]) -> Matrix {
@@ -143,11 +150,7 @@ impl MatrixOps {
         size: usize,
         reverse: bool,
     ) -> Option<(usize, usize)> {
-        let padding = if reverse {
-            size - row - 1
-        } else {
-            row
-        };
+        let padding = if reverse { size - row - 1 } else { row };
 
         let real_col = col.checked_sub(padding)?;
         if real_col >= size {
@@ -198,10 +201,7 @@ impl PatternMatcher {
 
 #[tracing::instrument]
 pub fn process(input: &str) -> miette::Result<String> {
-    let data: Matrix = input
-        .lines()
-        .map(|line| line.bytes().collect())
-        .collect();
+    let data: Matrix = input.lines().map(|line| line.bytes().collect()).collect();
 
     if data.is_empty() {
         return Ok("0".to_string());
@@ -209,7 +209,7 @@ pub fn process(input: &str) -> miette::Result<String> {
 
     let matches = PatternMatcher::find_all_matches(&data);
     let count = PatternMatcher::count_duplicate_positions(&matches, data.len());
-    
+
     Ok(count.to_string())
 }
 

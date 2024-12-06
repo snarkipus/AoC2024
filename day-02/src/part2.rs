@@ -42,14 +42,11 @@ fn can_fix_by_removing_one(sequence: &[i32]) -> bool {
         return true;
     }
 
-    sequence
-        .iter()
-        .enumerate()
-        .any(|(skip_idx, _)| {
-            let mut modified = sequence.to_vec();
-            modified.remove(skip_idx);
-            is_valid_sequence(&modified)
-        })
+    sequence.iter().enumerate().any(|(skip_idx, _)| {
+        let mut modified = sequence.to_vec();
+        modified.remove(skip_idx);
+        is_valid_sequence(&modified)
+    })
 }
 
 #[tracing::instrument]

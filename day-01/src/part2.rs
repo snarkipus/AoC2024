@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use miette::IntoDiagnostic;
 
@@ -19,7 +19,8 @@ pub fn process(input: &str) -> miette::Result<String> {
     // create a HashMap with the following:
     //  keys: elements of `a_set`
     //  values: the count of the number of times the key appears in `b` multiplied by the key
-    let b_map: HashMap<i32, i32> = a_set.iter()
+    let b_map: HashMap<i32, i32> = a_set
+        .iter()
         .map(|&key| {
             let count = b.iter().filter(|&&value| value == key).count() as i32;
             (key, count * key)

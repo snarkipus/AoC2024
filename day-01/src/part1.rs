@@ -18,13 +18,14 @@ pub fn process(input: &str) -> miette::Result<String> {
     b.sort_unstable();
 
     // zip a and b together and give the absolute value of the difference
-    let result = a.iter().zip(b.iter()).map(|(a, b)| (a - b).abs()).sum::<i32>();
+    let result = a
+        .iter()
+        .zip(b.iter())
+        .map(|(a, b)| (a - b).abs())
+        .sum::<i32>();
 
     // return the sum of the absolute differences
     Ok(result.to_string())
-
-
-
 }
 
 #[cfg(test)]
