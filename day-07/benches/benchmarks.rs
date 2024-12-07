@@ -14,3 +14,8 @@ fn part1() {
 fn part2() {
     part2::process(divan::black_box(include_str!("../input2.txt",))).unwrap();
 }
+
+#[divan::bench]
+fn part2_claude() {
+    part2_claude::process(divan::black_box(include_str!("../input2.txt",))).unwrap();
+}

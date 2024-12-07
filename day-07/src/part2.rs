@@ -39,28 +39,25 @@ pub fn process(input: &str) -> miette::Result<String> {
         })
         .collect();
 
-    let total = equations
-        .iter()
+    // Use parallel iterator and sum for the final result
+    let total: usize = equations
+        .par_iter()
         .filter(|equation| process_equation(equation))
-        .fold(0, |acc, (test_value, _)| acc + test_value);
+        .map(|(test_value, _)| test_value)
+        .sum();
 
     Ok(total.to_string())
 }
 
 // region: parser
 fn parse_usize(input: &str) -> IResult<&str, usize> {
-    // parse a digit sequence and convert it to a usize
     map_res(digit1, |s: &str| s.parse::<usize>())(input)
 }
 
 fn parse_line(input: &str) -> IResult<&str, TestEquation> {
-    // 1. Parse the initial usize (test_value)
     let (input, test_value) = parse_usize(input)?;
-    // 2. Parse the colon delimiter
     let (input, _) = tag(":")(input)?;
-    // 3. Consume at least one whitespace character
     let (input, _) = space1(input)?;
-    // 4. Parse one or more usize values separated by spaces
     let (input, vals) = separated_list1(space1, parse_usize)(input)?;
 
     Ok((input, (test_value, vals)))
@@ -69,15 +66,13 @@ fn parse_line(input: &str) -> IResult<&str, TestEquation> {
 
 fn process_equation(equation: &TestEquation) -> bool {
     let (test_value, operands) = equation;
-
-    // create `m` combinations binary options where:
-    //  * m = 3^(n-1)
-    //  * n = number of operands (length of `operands`)
     let combinations = (0..3usize.pow(operands.len() as u32 - 1)).collect::<Vec<_>>();
 
-    for combination in combinations {
+    // Use parallel iterator to check combinations
+    combinations.par_iter().any(|&combination| {
         let mut result = operands[0];
         let mut current_combination = combination;
+        
         for (idx, _) in operands.iter().enumerate().skip(1) {
             let operation = current_combination % 3;
             current_combination /= 3;
@@ -90,16 +85,12 @@ fn process_equation(equation: &TestEquation) -> bool {
             };
 
             if result > *test_value {
-                break;
+                return false;
             }
         }
 
-        if result == *test_value {
-            return true;
-        }
-    }
-
-    false
+        result == *test_value
+    })
 }
 
 fn mul(a: usize, b: usize) -> usize {
