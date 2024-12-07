@@ -13,7 +13,9 @@ pub fn process(input: &str) -> miette::Result<String> {
     let data = input.lines().collect::<Vec<&str>>();
 
     let [rules, updates] = data.split(|line| line.is_empty()).collect::<Vec<_>>()[..] else {
-        return Err(miette!("Invalid input format - expected rules and updates separated by empty line"));
+        return Err(miette!(
+            "Invalid input format - expected rules and updates separated by empty line"
+        ));
     };
 
     let pre_rules = create_rules(rules, false)?;
@@ -120,7 +122,7 @@ fn fix_updates(
                     }
                 }
             }
-            
+
             invalid // Return sequence whether fixed or not
         })
         .collect();
