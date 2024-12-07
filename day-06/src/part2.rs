@@ -184,8 +184,6 @@ impl Map {
         } else {
             self.guard.walk(&mut self.path)
         }
-
-
     }
 }
 
@@ -196,7 +194,7 @@ const START_POS: char = '^';
 pub fn process(input: &str) -> miette::Result<(Vec<Location>, String)> {
     let mut original_map = Map::new(input);
     original_map.track_path()?;
-    
+
     let mut loop_locations = HashSet::new();
 
     // Skip first location (start position)
@@ -223,15 +221,17 @@ pub fn process(input: &str) -> miette::Result<(Vec<Location>, String)> {
                 }
                 break;
             }
-            
+
             if test_map.guard.check_obstacle(&test_map.obstacles) {
                 test_map.guard.turn_right();
             }
         }
     }
 
-    Ok((loop_locations.clone().into_iter().collect(), 
-        loop_locations.len().to_string()))
+    Ok((
+        loop_locations.clone().into_iter().collect(),
+        loop_locations.len().to_string(),
+    ))
 }
 
 #[cfg(test)]
@@ -273,7 +273,7 @@ mod tests {
             Location { x: 7, y: 7 },
             Location { x: 1, y: 8 },
             Location { x: 3, y: 8 },
-            Location { x: 7, y: 9 }, 
+            Location { x: 7, y: 9 },
         ];
 
         let mut a_sorted = answers.to_vec();
@@ -284,5 +284,5 @@ mod tests {
 
         assert_eq!(a_sorted, b_sorted);
         Ok(())
-        }
+    }
 }

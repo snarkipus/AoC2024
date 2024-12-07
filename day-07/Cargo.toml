@@ -11,6 +11,8 @@ nom.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 miette.workspace = true
+thiserror = "2.0.4"
+rayon.workspace = true
 
 [dev-dependencies]
 divan.workspace = true
