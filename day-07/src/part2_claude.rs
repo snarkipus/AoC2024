@@ -15,7 +15,7 @@ pub fn process(input: &str) -> miette::Result<String> {
     // Pre-allocate with capacity based on rough line count
     let line_count = input.bytes().filter(|&b| b == b'\n').count() + 1;
     let mut equations = Vec::with_capacity(line_count);
-    
+
     // Process lines without collecting into intermediate Vec
     for line in input.lines() {
         if let Ok((_, result)) = parse_line(line) {
@@ -51,20 +51,20 @@ fn parse_line(input: &str) -> IResult<&str, TestEquation> {
 
 fn process_equation(equation: &TestEquation) -> bool {
     let (test_value, operands) = equation;
-    
+
     // Early return for single operand case
     if operands.len() == 1 {
         return operands[0] == *test_value;
     }
 
     // Pre-calculate powers of 3 up to max needed size
-    let powers = (0..operands.len()-1)
+    let powers = (0..operands.len() - 1)
         .map(|i| 3usize.pow(i as u32))
         .collect::<Vec<_>>();
-    
+
     // Calculate total combinations needed
     let max_combinations = 3usize.pow(operands.len() as u32 - 1);
-    
+
     // Use chunks for better cache utilization
     let chunk_size = 1024;
     (0..max_combinations)
@@ -73,16 +73,17 @@ fn process_equation(equation: &TestEquation) -> bool {
         .any(|chunk| {
             chunk.iter().any(|&combination| {
                 let mut result = operands[0];
-                
+
                 // Use pre-calculated powers instead of repeated division
                 for (idx, power) in powers.iter().enumerate() {
                     let operation = (combination / power) % 3;
-                    
+
                     // Short circuit if we're already over the target
-                    if result > *test_value && operation != 2 { // Don't short circuit for concat
+                    if result > *test_value && operation != 2 {
+                        // Don't short circuit for concat
                         return false;
                     }
-                    
+
                     result = match operation {
                         0 => add(result, operands[idx + 1]),
                         1 => mul(result, operands[idx + 1]),
@@ -98,7 +99,7 @@ fn process_equation(equation: &TestEquation) -> bool {
                         _ => unreachable!(),
                     };
                 }
-                
+
                 result == *test_value
             })
         })
@@ -118,16 +119,26 @@ fn add(a: usize, b: usize) -> usize {
 #[inline]
 fn fast_concat(a: usize, b: usize) -> usize {
     // Determine number of digits in b
-    let digits = if b < 10 { 1 }
-    else if b < 100 { 2 }
-    else if b < 1000 { 3 }
-    else if b < 10000 { 4 }
-    else if b < 100000 { 5 }
-    else if b < 1000000 { 6 }
-    else if b < 10000000 { 7 }
-    else if b < 100000000 { 8 }
-    else { 9 };
-    
+    let digits = if b < 10 {
+        1
+    } else if b < 100 {
+        2
+    } else if b < 1000 {
+        3
+    } else if b < 10000 {
+        4
+    } else if b < 100000 {
+        5
+    } else if b < 1000000 {
+        6
+    } else if b < 10000000 {
+        7
+    } else if b < 100000000 {
+        8
+    } else {
+        9
+    };
+
     a * 10_usize.pow(digits as u32) + b
 }
 

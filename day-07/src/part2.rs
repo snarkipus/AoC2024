@@ -1,6 +1,6 @@
 use miette::*;
-use thiserror::Error;
 use rayon::prelude::*;
+use thiserror::Error;
 
 use nom::{
     bytes::complete::tag,
@@ -72,7 +72,7 @@ fn process_equation(equation: &TestEquation) -> bool {
     combinations.par_iter().any(|&combination| {
         let mut result = operands[0];
         let mut current_combination = combination;
-        
+
         for (idx, _) in operands.iter().enumerate().skip(1) {
             let operation = current_combination % 3;
             current_combination /= 3;

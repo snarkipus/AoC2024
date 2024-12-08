@@ -1,6 +1,6 @@
 use miette::*;
-use thiserror::Error;
 use rayon::prelude::*;
+use thiserror::Error;
 
 use nom::{
     bytes::complete::tag,
@@ -67,7 +67,7 @@ fn parse_line(input: &str) -> IResult<&str, TestEquation> {
 fn process_equation(equation: &TestEquation) -> bool {
     let (test_value, operands) = equation;
     let combinations = (0..2usize.pow(operands.len() as u32 - 1)).collect::<Vec<_>>();
-    
+
     // Parallelize the combinations processing
     combinations.par_iter().any(|&combination| {
         let mut result = operands[0];
@@ -75,7 +75,7 @@ fn process_equation(equation: &TestEquation) -> bool {
             let mask = 1 << (idx - 1);
             result = match combination & mask == 0 {
                 true => add(result, operands[idx]),
-                false => mul(result, operands[idx])
+                false => mul(result, operands[idx]),
             };
 
             if result > *test_value {

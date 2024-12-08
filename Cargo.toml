@@ -20,4 +20,4 @@ nom-supreme = "0.8.0"
 test-log = { version = "0.2.13", default-features = false, features = [
     "trace",
 ] }
-thiserror = "2.0.3"
+thiserror = "2.0.5"
