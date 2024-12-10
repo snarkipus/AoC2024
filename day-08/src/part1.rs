@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use miette::{Diagnostic, SourceSpan};
 use nom::{
     character::complete::{newline, satisfy},
@@ -10,7 +11,6 @@ use std::{
     hash::Hash,
 };
 use thiserror::Error;
-use itertools::Itertools;
 
 #[derive(Debug, Error, Diagnostic)]
 #[error("Failed to parse grid")]
@@ -29,7 +29,7 @@ struct GridParseError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Antinode {
     x: isize,
-    y: isize
+    y: isize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -59,10 +59,10 @@ pub fn process(input: &str) -> miette::Result<String> {
     let mut antinodes = calculate_antinodes(&antennas)?;
 
     antinodes.0.retain(|antinode| {
-        antinode.x > 0 && 
-        antinode.y > 0 && 
-        antinode.x <= map.xdim as isize && 
-        antinode.y <= map.ydim as isize
+        antinode.x > 0
+            && antinode.y > 0
+            && antinode.x <= map.xdim as isize
+            && antinode.y <= map.ydim as isize
     });
 
     antinodes.0.iter().for_each(|antinode| {
@@ -116,20 +116,20 @@ fn parse_input(input: &str) -> miette::Result<(Map, AntennaSet)> {
 fn calculate_antinodes(antennas: &AntennaSet) -> miette::Result<AntinodeSet> {
     let mut antinodes = AntinodeSet(HashSet::new());
 
-    for antenna_locations  in antennas.0.values() {
+    for antenna_locations in antennas.0.values() {
         let antenna_pairs = antenna_locations
             .iter()
             .combinations(2)
             .map(|pair| (pair[0], pair[1]))
             .collect::<Vec<_>>();
 
-        for (a, b) in antenna_pairs.iter() { 
+        for (a, b) in antenna_pairs.iter() {
             let (anti_a, anti_b) = calculate_antinode_pair(a, b);
             antinodes.0.insert(anti_a);
             antinodes.0.insert(anti_b);
         }
     }
-    
+
     Ok(antinodes)
 }
 
@@ -312,10 +312,7 @@ mod tests {
 
     #[test_log::test]
     fn test_calculate_antinode_pair() -> miette::Result<()> {
-        let expected_antinodes = (
-            Antinode { x: 0, y: 0 },
-            Antinode { x: 3, y: 3 },
-        );
+        let expected_antinodes = (Antinode { x: 0, y: 0 }, Antinode { x: 3, y: 3 });
 
         let antinode_pair = calculate_antinode_pair(
             &Antenna(Location { x: 1, y: 1 }),
@@ -329,22 +326,20 @@ mod tests {
 
     #[test_log::test]
     fn test_calculate_antinodes() -> miette::Result<()> {
-        let antennas = HashMap::from([
-            ('A', vec![
+        let antennas = HashMap::from([(
+            'A',
+            vec![
                 Antenna(Location { x: 1, y: 1 }),
                 Antenna(Location { x: 2, y: 2 }),
-            ])
-        ]);
+            ],
+        )]);
 
-        let expected_antinodes = HashSet::from([
-            Antinode { x: 0, y: 0 },
-            Antinode { x: 3, y: 3 },
-        ]);
+        let expected_antinodes = HashSet::from([Antinode { x: 0, y: 0 }, Antinode { x: 3, y: 3 }]);
 
         let antinodes = calculate_antinodes(&AntennaSet(antennas))?;
 
         assert_eq!(antinodes.0, expected_antinodes);
-        
+
         Ok(())
     }
 }

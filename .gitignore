@@ -5,3 +5,5 @@ target
 main
 input*.txt
 .envrc
+puzzle_text.txt
+packed_output.txt
