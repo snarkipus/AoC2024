@@ -117,9 +117,9 @@ impl DiskState {
         if len == 0 {
             return Ok(());
         }
-    
+
         let mut right = len - 1;
-    
+
         while right > 0 {
             // Skip trailing free space
             while right > 0 && self.blocks[right].is_none() {
@@ -128,17 +128,19 @@ impl DiskState {
             if right == 0 {
                 break;
             }
-    
+
             // Find start of contiguous block from right
             let mut block_start = right;
             let current_id = self.blocks[right].as_ref().map(|b| b.id);
-            while block_start > 0 && self.blocks[block_start - 1].as_ref().map(|b| b.id) == current_id {
+            while block_start > 0
+                && self.blocks[block_start - 1].as_ref().map(|b| b.id) == current_id
+            {
                 block_start -= 1;
             }
-            
+
             // Calculate block size
             let block_size = right - block_start + 1;
-            
+
             // Find leftmost gap that can fit this block
             let mut left = 0;
             while left < block_start {
@@ -149,7 +151,7 @@ impl DiskState {
                     gap_size += 1;
                     left += 1;
                 }
-                
+
                 // If we found a big enough gap, move the block
                 if gap_size >= block_size {
                     // Move the contiguous block to the gap
@@ -158,17 +160,17 @@ impl DiskState {
                     }
                     break;
                 }
-                
+
                 // Skip occupied space
                 while left < block_start && self.blocks[left].is_some() {
                     left += 1;
                 }
             }
-            
+
             // Update right pointer for next iteration
             right = block_start.saturating_sub(1);
         }
-    
+
         Ok(())
     }
     // Helper method for debugging

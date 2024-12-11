@@ -1,4 +1,4 @@
-use day_09::part1::{DiskState, process};
+use day_09::part1::{process, DiskState};
 use day_09::part2::*;
 
 fn main() {
