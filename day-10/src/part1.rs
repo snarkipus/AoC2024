@@ -63,32 +63,32 @@ impl fmt::Display for Map {
 }
 
 /// Processes a climbing grid and returns the total number of reachable peaks from all trailheads
-/// 
+///
 /// # Arguments
 /// * `input` - String containing the grid of numbers representing heights
-/// 
+///
 /// # Returns
 /// * `Result<String>` - The sum of reachable peaks from each trailhead
-/// 
+///
 /// # Errors
 /// * If the input is empty or malformed
 /// * If no peaks or trailheads are found
 #[tracing::instrument]
 pub fn process(input: &str) -> Result<String> {
     info!("Processing climbing grid");
-    let map = parse_input(input)
-        .context("Failed to parse input grid")?;
-    
-    debug!("Created map with dimensions {:?}", map.dimensions());
-    
-    let graph = create_graph(&map)
-        .context("Failed to create graph representation")?;
-    
-    debug!("Created graph with {} nodes and {} edges", 
-           graph.node_count(), graph.edge_count());
+    let map = parse_input(input).context("Failed to parse input grid")?;
 
-    let result = count_reachable_peaks(&graph)
-        .context("Failed to count reachable peaks")?;
+    debug!("Created map with dimensions {:?}", map.dimensions());
+
+    let graph = create_graph(&map).context("Failed to create graph representation")?;
+
+    debug!(
+        "Created graph with {} nodes and {} edges",
+        graph.node_count(),
+        graph.edge_count()
+    );
+
+    let result = count_reachable_peaks(&graph).context("Failed to count reachable peaks")?;
 
     let total = result.iter().fold(0, |total, (_, count)| total + count);
     debug!("Found total of {} reachable peaks", total);
@@ -98,11 +98,13 @@ pub fn process(input: &str) -> Result<String> {
 
 fn parse_input(input: &str) -> Result<Map> {
     // Input validation
-    let xdim = input.lines().next()
+    let xdim = input
+        .lines()
+        .next()
         .ok_or_else(|| miette!("Input is empty"))?
         .len();
     let ydim = input.lines().count();
-    
+
     if ydim == 0 {
         return Err(miette!("Input has no lines"));
     }
@@ -133,10 +135,12 @@ fn parse_input(input: &str) -> Result<Map> {
     // Validate parsed values
     for node in result.1.iter() {
         if node.value > MAX_VALUE {
-            return Err(miette!("Invalid height value {} at line {}, column {}", 
+            return Err(miette!(
+                "Invalid height value {} at line {}, column {}",
                 node.value,
                 node.position.location_line(),
-                node.position.get_column()));
+                node.position.get_column()
+            ));
         }
     }
 
@@ -152,7 +156,7 @@ fn parse_input(input: &str) -> Result<Map> {
 }
 
 /// Creates a directed graph representation of the climbing map
-/// 
+///
 /// Edges are created between adjacent nodes where the destination
 /// is exactly one value higher than the source.
 fn create_graph(map: &Map) -> Result<DiGraph<Node, ()>> {
@@ -170,7 +174,7 @@ fn create_graph(map: &Map) -> Result<DiGraph<Node, ()>> {
 
     // Second pass: add edges according to rules
     let deltas = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // Down, Right, Up, Left
-    
+
     for y in 0..map.ydim {
         for x in 0..map.xdim {
             let current = indices[&(x, y)];
@@ -201,7 +205,7 @@ fn create_graph(map: &Map) -> Result<DiGraph<Node, ()>> {
 }
 
 /// Counts how many peaks each trailhead can reach
-/// 
+///
 /// Returns a vector of tuples (trailhead_node_index, number_of_reachable_peaks)
 fn count_reachable_peaks(graph: &DiGraph<Node, ()>) -> Result<Vec<(NodeIndex, usize)>> {
     let peaks: HashSet<_> = graph
@@ -222,25 +226,29 @@ fn count_reachable_peaks(graph: &DiGraph<Node, ()>) -> Result<Vec<(NodeIndex, us
         return Err(miette!("No trailheads found in the grid"));
     }
 
-    debug!("Found {} peaks and {} trailheads", peaks.len(), trailheads.len());
+    debug!(
+        "Found {} peaks and {} trailheads",
+        peaks.len(),
+        trailheads.len()
+    );
 
     let mut result = Vec::new();
-    
+
     // Pre-calculate all reachable nodes from each trailhead
     for &start in &trailheads {
         let mut visited = HashSet::new();
         let mut reachable_peaks = 0;
-        
+
         // Stack-based DFS to avoid recursion overhead
         let mut stack = vec![start];
         visited.insert(start);
-        
+
         while let Some(current) = stack.pop() {
             // If we found a peak, increment counter
             if peaks.contains(&current) {
                 reachable_peaks += 1;
             }
-            
+
             // Add all unvisited neighbors to the stack
             for neighbor in graph.neighbors(current) {
                 if !visited.contains(&neighbor) {
@@ -249,7 +257,7 @@ fn count_reachable_peaks(graph: &DiGraph<Node, ()>) -> Result<Vec<(NodeIndex, us
                 }
             }
         }
-        
+
         result.push((start, reachable_peaks));
     }
 
@@ -339,7 +347,10 @@ mod tests {
             }
         }
 
-        assert!(found_edges.iter().all(|&x| x), "Not all expected edges were found");
+        assert!(
+            found_edges.iter().all(|&x| x),
+            "Not all expected edges were found"
+        );
         Ok(())
     }
 

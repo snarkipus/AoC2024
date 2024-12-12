@@ -63,32 +63,32 @@ impl fmt::Display for Map {
 }
 
 /// Processes a climbing grid and returns the total number of reachable peaks from all trailheads
-/// 
+///
 /// # Arguments
 /// * `input` - String containing the grid of numbers representing heights
-/// 
+///
 /// # Returns
 /// * `Result<String>` - The sum of reachable peaks from each trailhead
-/// 
+///
 /// # Errors
 /// * If the input is empty or malformed
 /// * If no peaks or trailheads are found
 #[tracing::instrument]
 pub fn process(input: &str) -> Result<String> {
     info!("Processing climbing grid");
-    let map = parse_input(input)
-        .context("Failed to parse input grid")?;
-    
-    debug!("Created map with dimensions {:?}", map.dimensions());
-    
-    let graph = create_graph(&map)
-        .context("Failed to create graph representation")?;
-    
-    debug!("Created graph with {} nodes and {} edges", 
-           graph.node_count(), graph.edge_count());
+    let map = parse_input(input).context("Failed to parse input grid")?;
 
-    let result = count_paths(&graph)
-        .context("Failed to count reachable peaks")?;
+    debug!("Created map with dimensions {:?}", map.dimensions());
+
+    let graph = create_graph(&map).context("Failed to create graph representation")?;
+
+    debug!(
+        "Created graph with {} nodes and {} edges",
+        graph.node_count(),
+        graph.edge_count()
+    );
+
+    let result = count_paths(&graph).context("Failed to count reachable peaks")?;
 
     let total = result.iter().fold(0, |total, (_, count)| total + count);
     debug!("Found total of {} reachable peaks", total);
@@ -98,11 +98,13 @@ pub fn process(input: &str) -> Result<String> {
 
 fn parse_input(input: &str) -> Result<Map> {
     // Input validation
-    let xdim = input.lines().next()
+    let xdim = input
+        .lines()
+        .next()
         .ok_or_else(|| miette!("Input is empty"))?
         .len();
     let ydim = input.lines().count();
-    
+
     if ydim == 0 {
         return Err(miette!("Input has no lines"));
     }
@@ -133,10 +135,12 @@ fn parse_input(input: &str) -> Result<Map> {
     // Validate parsed values
     for node in result.1.iter() {
         if node.value > MAX_VALUE {
-            return Err(miette!("Invalid height value {} at line {}, column {}", 
+            return Err(miette!(
+                "Invalid height value {} at line {}, column {}",
                 node.value,
                 node.position.location_line(),
-                node.position.get_column()));
+                node.position.get_column()
+            ));
         }
     }
 
@@ -152,7 +156,7 @@ fn parse_input(input: &str) -> Result<Map> {
 }
 
 /// Creates a directed graph representation of the climbing map
-/// 
+///
 /// Edges are created between adjacent nodes where the destination
 /// is exactly one value higher than the source.
 fn create_graph(map: &Map) -> Result<DiGraph<Node, ()>> {
@@ -170,7 +174,7 @@ fn create_graph(map: &Map) -> Result<DiGraph<Node, ()>> {
 
     // Second pass: add edges according to rules
     let deltas = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // Down, Right, Up, Left
-    
+
     for y in 0..map.ydim {
         for x in 0..map.xdim {
             let current = indices[&(x, y)];
@@ -219,15 +223,19 @@ fn count_paths(graph: &DiGraph<Node, ()>) -> Result<Vec<(NodeIndex, usize)>> {
         return Err(miette!("No trailheads found in the grid"));
     }
 
-    debug!("Found {} peaks and {} trailheads", peaks.len(), trailheads.len());
+    debug!(
+        "Found {} peaks and {} trailheads",
+        peaks.len(),
+        trailheads.len()
+    );
 
     let mut result = Vec::new();
-    
+
     // Calculate paths from each trailhead
     for &start in &trailheads {
         let mut path_count = 0;
         let mut cache: HashMap<NodeIndex, usize> = HashMap::new();
-        
+
         // Helper function to count paths using dynamic programming
         fn count_paths_to_peaks(
             graph: &DiGraph<Node, ()>,
@@ -239,23 +247,23 @@ fn count_paths(graph: &DiGraph<Node, ()>) -> Result<Vec<(NodeIndex, usize)>> {
             if let Some(&count) = cache.get(&current) {
                 return count;
             }
-            
+
             // If we're at a peak, we've found one path
             if peaks.contains(&current) {
                 return 1;
             }
-            
+
             // Count paths through all neighbors
             let count = graph
                 .neighbors(current)
                 .map(|neighbor| count_paths_to_peaks(graph, neighbor, peaks, cache))
                 .sum();
-                
+
             // Cache and return result
             cache.insert(current, count);
             count
         }
-        
+
         // Count paths from this trailhead to all peaks
         path_count = count_paths_to_peaks(graph, start, &peaks, &mut cache);
         result.push((start, path_count));
@@ -347,11 +355,12 @@ mod tests {
             }
         }
 
-        assert!(found_edges.iter().all(|&x| x), "Not all expected edges were found");
+        assert!(
+            found_edges.iter().all(|&x| x),
+            "Not all expected edges were found"
+        );
         Ok(())
     }
-
-
 
     #[test]
     fn test_map_display() -> Result<()> {
