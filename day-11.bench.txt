@@ -1,3 +1,31 @@
-day_11_bench  fastest       │ slowest       │ median        │ mean          │ samples │ iters
-╰─ part1      31.45 ms      │ 53.57 ms      │ 32.87 ms      │ 33.39 ms      │ 100     │ 100
+day_11_bench           fastest       │ slowest       │ median        │ mean          │ samples │ iters
+├─ element_operations  562.7 ns      │ 3.076 µs      │ 592.7 ns      │ 629 ns        │ 100     │ 100
+├─ get_digits          97.41 ns      │ 104.8 ns      │ 101.3 ns      │ 101.2 ns      │ 100     │ 3200
+├─ part1               32.71 ms      │ 37.02 ms      │ 34.08 ms      │ 34.08 ms      │ 100     │ 100
+├─ part1_claude        32.93 ms      │ 36.64 ms      │ 34.53 ms      │ 34.55 ms      │ 100     │ 100
+╰─ split_digits        448.7 ns      │ 832.1 ns      │ 454.7 ns      │ 462.9 ns      │ 100     │ 800
+
+day_11_bench           fastest       │ slowest       │ median        │ mean          │ samples │ iters
+├─ count_operations    373.7 ns      │ 1.729 µs      │ 394.7 ns      │ 421 ns        │ 100     │ 100
+├─ element_operations  595.7 ns      │ 2.104 µs      │ 626.7 ns      │ 642.4 ns      │ 100     │ 100
+├─ get_digits          104.7 ns      │ 117.3 ns      │ 109.1 ns      │ 109.5 ns      │ 100     │ 1600
+├─ part1               31.4 ms       │ 37.51 ms      │ 32.64 ms      │ 33.06 ms      │ 100     │ 100
+├─ part1_claude        30.44 ms      │ 38 ms         │ 32.57 ms      │ 32.47 ms      │ 100     │ 100
+╰─ split_digits        436.7 ns      │ 1.622 µs      │ 446.7 ns      │ 470.1 ns      │ 100     │ 100
+
+day_11_bench           fastest       │ slowest       │ median        │ mean          │ samples │ iters
+├─ element_operations  550.7 ns      │ 2.316 µs      │ 588.7 ns      │ 611.9 ns      │ 100     │ 100
+├─ get_digits          95.94 ns      │ 184.6 ns      │ 98.91 ns      │ 104.9 ns      │ 100     │ 3200
+├─ part1               31.54 ms      │ 43.08 ms      │ 32.06 ms      │ 32.29 ms      │ 100     │ 100
+├─ part1_claude        31.63 ms      │ 40.11 ms      │ 32.21 ms      │ 32.38 ms      │ 100     │ 100
+├─ profile_operations  32.12 ms      │ 39.7 ms       │ 32.71 ms      │ 32.9 ms       │ 100     │ 100
+╰─ split_digits        434.4 ns      │ 456.9 ns      │ 440.2 ns      │ 440.9 ns      │ 100     │ 800
+
+day_11_bench           fastest       │ slowest       │ median        │ mean          │ samples │ iters
+├─ element_operations  559.7 ns      │ 2.382 µs      │ 588.7 ns      │ 618.2 ns      │ 100     │ 100
+├─ get_digits          99.41 ns      │ 116.1 ns      │ 107.7 ns      │ 107.3 ns      │ 100     │ 800
+├─ part1               31.63 ms      │ 34.69 ms      │ 32.09 ms      │ 32.23 ms      │ 100     │ 100
+├─ part1_claude        31.61 ms      │ 44 ms         │ 32.55 ms      │ 32.79 ms      │ 100     │ 100
+├─ profile_operations  33.66 ms      │ 36.93 ms      │ 34.42 ms      │ 34.64 ms      │ 100     │ 100
+╰─ split_digits        559.7 ns      │ 2.449 µs      │ 588.7 ns      │ 613.4 ns      │ 100     │ 100
 

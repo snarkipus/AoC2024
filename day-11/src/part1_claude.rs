@@ -2,17 +2,16 @@ use itertools::Itertools;
 use miette::{IntoDiagnostic, Result, miette};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Element {
-    value: usize,
+pub struct Element {
+    pub value: usize,
 }
 
 impl Element {
-    #[inline(always)]
-    fn new(value: usize) -> Self {
+    pub fn new(value: usize) -> Self {
         Self { value }
     }
 
-    fn get_digits(&self) -> Result<(Vec<usize>, usize)> {
+    pub fn get_digits(&self) -> Result<(Vec<usize>, usize)> {
         if self.value == 0 {
             return Ok((vec![0], 0));
         }
@@ -30,7 +29,7 @@ impl Element {
         Ok((digits, length))
     }
 
-    fn is_zero(&self) -> Result<bool> {
+    pub fn is_zero(&self) -> Result<bool> {
         Ok(self.value == 0)
     }
 
@@ -43,33 +42,25 @@ impl Element {
         Ok(())
     }
 
-    fn is_even(&self) -> Result<bool> {
+    pub fn is_even(&self) -> Result<bool> {
         let (_, length) = self.get_digits()?;
         Ok(length % 2 == 0)
     }
     
-    fn split_digits(&self) -> Result<Vec<Element>> {
-        // Optimized implementation without string conversion
-        if self.value == 0 {
-            return Ok(vec![Element::new(0)]);
-        }
-
-        let mut num = self.value;
-        let mut len = 0;
-        let mut power = 1;
-        
-        while num > 0 {
-            len += 1;
-            num /= 10;
-        }
-        
-        for _ in 0..len/2 {
-            power *= 10;
-        }
-        
-        let right = self.value % power;
-        let left = self.value / power;
-        
+    pub fn split_digits(&self) -> Result<Vec<Element>> {
+        let (digits, length) = self.get_digits()?;
+        let left = digits
+            .iter()
+            .take(&length / 2)
+            .join("")
+            .parse::<usize>()
+            .into_diagnostic()?;
+        let right = digits
+            .iter()
+            .skip(&length / 2)
+            .join("")
+            .parse::<usize>()
+            .into_diagnostic()?;
         Ok(vec![Element::new(left), Element::new(right)])
     }
 
@@ -78,50 +69,39 @@ impl Element {
         self.value = value;
         Ok(())
     }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Sequence {
-    elements: Vec<Element>,
+pub struct Sequence {
+    pub elements: Vec<Element>,
 }
 
 #[tracing::instrument]
-pub fn process(input: &str, blink_count: usize) -> Result<String> {
-    let sequence = parse_input(input)?;
-    
-    // Use iterative processing to avoid stack overflow
-    let final_elements = process_sequence_iterative(&sequence, blink_count)?;
-    
-    Ok(final_elements.len().to_string())
+pub fn process(input: &str, blink_count: usize) -> miette::Result<String> {
+    let input_sequence = parse_input(input)?;
+    let result = process_sequence(&input_sequence, blink_count)?;
+
+    Ok(result.len().to_string())
 }
 
-fn parse_input(input: &str) -> Result<Sequence> {
+pub fn parse_input(input: &str) -> Result<Sequence> {
     let elements: Vec<Element> = input
         .split_whitespace()
-        .map(|x| x.parse::<usize>().into_diagnostic())
-        .collect::<Result<Vec<_>>>()?
-        .into_iter()
+        .map(|x| x.parse::<usize>().unwrap())
         .map(Element::new)
-        .collect();
+        .collect::<Vec<_>>();
     Ok(Sequence { elements })
 }
 
-// This version is kept for test compatibility
 fn process_sequence(input_sequence: &Sequence, count: usize) -> Result<Vec<Element>> {
-    process_sequence_iterative(input_sequence, count)
-}
-
-fn process_sequence_iterative(input_sequence: &Sequence, count: usize) -> Result<Vec<Element>> {
-    if count == 0 {
-        return Ok(input_sequence.elements.clone());
-    }
-
-    // Use two buffers to avoid allocations
+    // Pre-allocate two vectors that we'll swap between
     let mut current = input_sequence.elements.clone();
+    // Make a reasonable initial capacity guess based on typical growth
     let mut next = Vec::with_capacity(current.len() * 2);
 
     for _ in 0..count {
-        next.clear();
+        next.clear(); // Clear but keep capacity
         
         for element in &current {
             if element.is_zero()? {
@@ -134,12 +114,7 @@ fn process_sequence_iterative(input_sequence: &Sequence, count: usize) -> Result
             }
         }
         
-        // Ensure next buffer has enough capacity for next iteration
-        if next.len() > current.capacity() {
-            current = Vec::with_capacity(next.len() * 2);
-        }
-        
-        // Swap buffers
+        // Swap vectors to reuse allocations
         std::mem::swap(&mut current, &mut next);
     }
 
@@ -199,6 +174,7 @@ mod tests {
             #[case] output_str: &str,
             #[case] count: usize,
             #[with(output_str)] process_test_sequence: Sequence,
+
     ) -> miette::Result<()> {
         let input = parse_input("125 17")?;
         assert_eq!(process_test_sequence.elements, process_sequence(&input, count)?);
