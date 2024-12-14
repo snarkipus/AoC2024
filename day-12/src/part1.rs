@@ -47,26 +47,26 @@ impl Region {
 
     fn calculate_perimeter(graph: &UnGraph<Plot, ()>) -> usize {
         // Extract perimeter calculation to its own function for clarity
-        graph.node_indices().map(|node_idx| {
-            let node_pos = graph[node_idx].position;
-            let mut exposed_sides = 4;
+        graph
+            .node_indices()
+            .map(|node_idx| {
+                let node_pos = graph[node_idx].position;
+                let mut exposed_sides = 4;
 
-            for (dx, dy) in [(0, 1), (1, 0), (0, -1), (-1, 0)] {
-                let neighbor_pos = (
-                    node_pos.0 as i32 + dx,
-                    node_pos.1 as i32 + dy,
-                );
-                
-                if graph.neighbors(node_idx).any(|neighbor_idx| {
-                    let neighbor = &graph[neighbor_idx];
-                    neighbor.position == (neighbor_pos.0 as usize, neighbor_pos.1 as usize)
-                }) {
-                    exposed_sides -= 1;
+                for (dx, dy) in [(0, 1), (1, 0), (0, -1), (-1, 0)] {
+                    let neighbor_pos = (node_pos.0 as i32 + dx, node_pos.1 as i32 + dy);
+
+                    if graph.neighbors(node_idx).any(|neighbor_idx| {
+                        let neighbor = &graph[neighbor_idx];
+                        neighbor.position == (neighbor_pos.0 as usize, neighbor_pos.1 as usize)
+                    }) {
+                        exposed_sides -= 1;
+                    }
                 }
-            }
-            
-            exposed_sides
-        }).sum()
+
+                exposed_sides
+            })
+            .sum()
     }
 
     pub fn price(&self) -> usize {
@@ -142,7 +142,7 @@ fn extract_equal_value_subgraphs<E: Clone>(graph: &UnGraph<Plot, E>) -> Vec<UnGr
 
         let start_char = graph[start_node].character;
         let component = collect_connected_component(graph, start_node, start_char, &mut visited);
-        
+
         if !component.is_empty() {
             subgraphs.push(create_subgraph(graph, &component));
         }
@@ -166,8 +166,9 @@ fn collect_connected_component<E>(
             component.insert(current);
 
             queue.extend(
-                graph.neighbors(current)
-                    .filter(|&n| !visited.contains(&n) && graph[n].character == target_char)
+                graph
+                    .neighbors(current)
+                    .filter(|&n| !visited.contains(&n) && graph[n].character == target_char),
             );
         }
     }
@@ -195,7 +196,8 @@ fn create_subgraph<E: Clone>(
                 subgraph.add_edge(
                     node_map[&node_idx],
                     node_map[&neighbor],
-                    graph.edge_weight(graph.find_edge(node_idx, neighbor).unwrap())
+                    graph
+                        .edge_weight(graph.find_edge(node_idx, neighbor).unwrap())
                         .unwrap()
                         .clone(),
                 );

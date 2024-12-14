@@ -1,4 +1,4 @@
-use day_12::part1::process;
+use day_12::part1_claude::process;
 use miette::Context;
 
 #[tracing::instrument]
