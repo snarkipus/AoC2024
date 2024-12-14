@@ -1,4 +1,4 @@
-use miette::{IntoDiagnostic, Result, miette};
+use miette::{miette, IntoDiagnostic, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Element {
@@ -21,7 +21,7 @@ impl Element {
         if self.value == 0 {
             return Ok(false);
         }
-        
+
         let mut num = self.value;
         let mut len = 0;
         while num > 0 {
@@ -30,7 +30,7 @@ impl Element {
         }
         Ok(len % 2 == 0)
     }
-    
+
     fn split_digits(&self) -> Result<Vec<Element>> {
         if self.value == 0 {
             return Ok(vec![Element::new(0)]);
@@ -39,19 +39,19 @@ impl Element {
         let mut num = self.value;
         let mut len = 0;
         let mut power = 1;
-        
+
         while num > 0 {
             len += 1;
             num /= 10;
         }
-        
-        for _ in 0..len/2 {
+
+        for _ in 0..len / 2 {
             power *= 10;
         }
-        
+
         let right = self.value % power;
         let left = self.value / power;
-        
+
         Ok(vec![Element::new(left), Element::new(right)])
     }
 }
@@ -97,10 +97,10 @@ pub fn process(input: &str, blink_count: usize) -> Result<String> {
         .into_iter()
         .map(Element::new)
         .collect();
-        
+
     let mut next = Vec::with_capacity(current.len() * 2);
     let mut previous_stats = analyze_sequence(&current)?;
-    
+
     println!("\nInitial state:");
     println!("Length: {}", previous_stats.length);
     println!("Zeros: {}", previous_stats.zeros);
@@ -109,7 +109,7 @@ pub fn process(input: &str, blink_count: usize) -> Result<String> {
 
     for iteration in 0..blink_count {
         next.clear();
-        
+
         for element in &current {
             if element.is_zero()? {
                 next.push(Element::new(1));
@@ -120,27 +120,35 @@ pub fn process(input: &str, blink_count: usize) -> Result<String> {
                 next.push(Element::new(element.value * 2024));
             }
         }
-        
+
         let stats = analyze_sequence(&next)?;
         println!("\nIteration {}:", iteration + 1);
-        println!("Length: {} (growth: {:.2}x)", stats.length, stats.length as f64 / previous_stats.length as f64);
+        println!(
+            "Length: {} (growth: {:.2}x)",
+            stats.length,
+            stats.length as f64 / previous_stats.length as f64
+        );
         println!("Zeros: {}", stats.zeros);
         println!("Evens: {}", stats.evens);
         println!("Odds: {}", stats.odds);
-        
+
         // Early exit if we detect exponential growth
         if stats.length > 1_000_000 {
             println!("\nSequence growing too large, analyzing pattern...");
             let growth_rate = stats.length as f64 / previous_stats.length as f64;
             println!("Growth rate per iteration: {:.2}x", growth_rate);
-            
+
             // If we can predict the final length...
-            let estimated_final_length = stats.length as f64 * growth_rate.powi((blink_count - iteration - 1) as i32);
+            let estimated_final_length =
+                stats.length as f64 * growth_rate.powi((blink_count - iteration - 1) as i32);
             println!("Estimated final length: {:.2e}", estimated_final_length);
-            
-            return Ok(format!("Estimated length after {} iterations: {:.0}", blink_count, estimated_final_length));
+
+            return Ok(format!(
+                "Estimated length after {} iterations: {:.0}",
+                blink_count, estimated_final_length
+            ));
         }
-        
+
         previous_stats = stats;
         std::mem::swap(&mut current, &mut next);
     }

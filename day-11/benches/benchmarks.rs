@@ -55,7 +55,7 @@ fn element_operations() {
 #[divan::bench]
 fn profile_operations() -> Vec<part1_claude::Element> {
     static mut TOTAL_OPS: usize = 0;
-    
+
     let (ops, result) = {
         let mut operation_count = 0;
         let input_sequence = part1_claude::parse_input(include_str!("../input1.txt")).unwrap();
@@ -65,10 +65,10 @@ fn profile_operations() -> Vec<part1_claude::Element> {
         for iteration in 0..25 {
             next.clear();
             let initial_len = current.len();
-            
+
             for element in &current {
                 operation_count += 1; // Count each element iteration
-                
+
                 if element.is_zero().unwrap() {
                     operation_count += 1;
                     next.push(part1_claude::Element::new(1));
@@ -82,19 +82,24 @@ fn profile_operations() -> Vec<part1_claude::Element> {
                     next.push(part1_claude::Element::new(element.value * 2024));
                 }
             }
-            
-            eprintln!("Iteration {}: {} elements -> {} elements", iteration, initial_len, next.len());
+
+            eprintln!(
+                "Iteration {}: {} elements -> {} elements",
+                iteration,
+                initial_len,
+                next.len()
+            );
             std::mem::swap(&mut current, &mut next);
         }
 
         (operation_count, current)
     };
-    
+
     // Using unsafe to modify the static counter
     unsafe {
         TOTAL_OPS = ops;
         eprintln!("Total operations: {}", TOTAL_OPS);
     }
-    
+
     result
 }

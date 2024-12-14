@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use miette::{IntoDiagnostic, Result, miette};
+use miette::{miette, IntoDiagnostic, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Element {
@@ -47,7 +47,7 @@ impl Element {
         let (_, length) = self.get_digits()?;
         Ok(length % 2 == 0)
     }
-    
+
     fn split_digits(&self) -> Result<Vec<Element>> {
         // Optimized implementation without string conversion
         if self.value == 0 {
@@ -57,19 +57,19 @@ impl Element {
         let mut num = self.value;
         let mut len = 0;
         let mut power = 1;
-        
+
         while num > 0 {
             len += 1;
             num /= 10;
         }
-        
-        for _ in 0..len/2 {
+
+        for _ in 0..len / 2 {
             power *= 10;
         }
-        
+
         let right = self.value % power;
         let left = self.value / power;
-        
+
         Ok(vec![Element::new(left), Element::new(right)])
     }
 
@@ -88,10 +88,10 @@ struct Sequence {
 #[tracing::instrument]
 pub fn process(input: &str, blink_count: usize) -> Result<String> {
     let sequence = parse_input(input)?;
-    
+
     // Use iterative processing to avoid stack overflow
     let final_elements = process_sequence_iterative(&sequence, blink_count)?;
-    
+
     Ok(final_elements.len().to_string())
 }
 
@@ -122,7 +122,7 @@ fn process_sequence_iterative(input_sequence: &Sequence, count: usize) -> Result
 
     for _ in 0..count {
         next.clear();
-        
+
         for element in &current {
             if element.is_zero()? {
                 next.push(Element::new(1));
@@ -133,12 +133,12 @@ fn process_sequence_iterative(input_sequence: &Sequence, count: usize) -> Result
                 next.push(Element::new(element.value * 2024));
             }
         }
-        
+
         // Ensure next buffer has enough capacity for next iteration
         if next.len() > current.capacity() {
             current = Vec::with_capacity(next.len() * 2);
         }
-        
+
         // Swap buffers
         std::mem::swap(&mut current, &mut next);
     }
@@ -149,8 +149,8 @@ fn process_sequence_iterative(input_sequence: &Sequence, count: usize) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_log;
     use rstest::{fixture, rstest};
+    use test_log;
 
     #[test]
     fn test_process() -> miette::Result<()> {
@@ -194,14 +194,20 @@ mod tests {
     #[case("512072 1 20 24 28676032", 3)]
     #[case("512 72 2024 2 0 2 4 2867 6032", 4)]
     #[case("1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32", 5)]
-    #[case("2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2", 6)]
+    #[case(
+        "2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2",
+        6
+    )]
     fn test_process_sequence(
-            #[case] output_str: &str,
-            #[case] count: usize,
-            #[with(output_str)] process_test_sequence: Sequence,
+        #[case] output_str: &str,
+        #[case] count: usize,
+        #[with(output_str)] process_test_sequence: Sequence,
     ) -> miette::Result<()> {
         let input = parse_input("125 17")?;
-        assert_eq!(process_test_sequence.elements, process_sequence(&input, count)?);
+        assert_eq!(
+            process_test_sequence.elements,
+            process_sequence(&input, count)?
+        );
         Ok(())
     }
 

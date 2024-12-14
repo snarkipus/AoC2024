@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use miette::{IntoDiagnostic, Result, miette};
+use miette::{miette, IntoDiagnostic, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Element {
@@ -46,7 +46,7 @@ impl Element {
         let (_, length) = self.get_digits()?;
         Ok(length % 2 == 0)
     }
-    
+
     pub fn split_digits(&self) -> Result<Vec<Element>> {
         let (digits, length) = self.get_digits()?;
         let left = digits
@@ -69,7 +69,6 @@ impl Element {
         self.value = value;
         Ok(())
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,7 +101,7 @@ fn process_sequence(input_sequence: &Sequence, count: usize) -> Result<Vec<Eleme
 
     for _ in 0..count {
         next.clear(); // Clear but keep capacity
-        
+
         for element in &current {
             if element.is_zero()? {
                 next.push(Element::new(1));
@@ -113,7 +112,7 @@ fn process_sequence(input_sequence: &Sequence, count: usize) -> Result<Vec<Eleme
                 next.push(Element::new(element.value * 2024));
             }
         }
-        
+
         // Swap vectors to reuse allocations
         std::mem::swap(&mut current, &mut next);
     }
@@ -124,8 +123,8 @@ fn process_sequence(input_sequence: &Sequence, count: usize) -> Result<Vec<Eleme
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_log;
     use rstest::{fixture, rstest};
+    use test_log;
 
     #[test]
     fn test_process() -> miette::Result<()> {
@@ -169,15 +168,20 @@ mod tests {
     #[case("512072 1 20 24 28676032", 3)]
     #[case("512 72 2024 2 0 2 4 2867 6032", 4)]
     #[case("1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32", 5)]
-    #[case("2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2", 6)]
+    #[case(
+        "2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2",
+        6
+    )]
     fn test_process_sequence(
-            #[case] output_str: &str,
-            #[case] count: usize,
-            #[with(output_str)] process_test_sequence: Sequence,
-
+        #[case] output_str: &str,
+        #[case] count: usize,
+        #[with(output_str)] process_test_sequence: Sequence,
     ) -> miette::Result<()> {
         let input = parse_input("125 17")?;
-        assert_eq!(process_test_sequence.elements, process_sequence(&input, count)?);
+        assert_eq!(
+            process_test_sequence.elements,
+            process_sequence(&input, count)?
+        );
         Ok(())
     }
 
