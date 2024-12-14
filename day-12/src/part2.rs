@@ -44,12 +44,15 @@ impl Region {
         let area = graph.node_count();
         let perimeter = Self::calculate_perimeter(&graph);
         let sides = Self::calculate_sides(&graph);
-        Self { area, _perimeter: perimeter, sides }
+        Self {
+            area,
+            _perimeter: perimeter,
+            sides,
+        }
     }
 
     /// calculates the total perimiter of a region
     fn calculate_perimeter(graph: &UnGraph<Plot, ()>) -> usize {
-
         graph
             .node_indices()
             .map(|node_idx| {
@@ -78,41 +81,52 @@ impl Region {
         if graph.node_count() == 1 {
             return 4;
         }
-    
+
         let mut sides = 0;
         let mut visited = HashSet::new();
-    
+
         // For each node
         for node_idx in graph.node_indices() {
             let node_pos = graph[node_idx].position;
-            
+
             // Skip if we've already processed this node
             if visited.contains(&node_pos) {
                 continue;
             }
-            
+
             // Check each direction
             for (dx, dy) in [(0, 1), (1, 0), (0, -1), (-1, 0)] {
                 let next_pos = (
                     (node_pos.0 as i32 + dx) as usize,
-                    (node_pos.1 as i32 + dy) as usize
+                    (node_pos.1 as i32 + dy) as usize,
                 );
-                
+
                 // If there's no neighbor in this direction
-                if !graph.neighbors(node_idx).any(|n| graph[n].position == next_pos) {
+                if !graph
+                    .neighbors(node_idx)
+                    .any(|n| graph[n].position == next_pos)
+                {
                     // Check if this is a corner (no neighbors in adjacent direction)
                     let corner = match (dx, dy) {
-                        (0, 1) | (0, -1) => !graph.neighbors(node_idx)
-                            .any(|n| graph[n].position == (node_pos.0 + 1, node_pos.1)) &&
-                            !graph.neighbors(node_idx)
-                            .any(|n| graph[n].position == (node_pos.0.saturating_sub(1), node_pos.1)),
-                        (1, 0) | (-1, 0) => !graph.neighbors(node_idx)
-                            .any(|n| graph[n].position == (node_pos.0, node_pos.1 + 1)) &&
-                            !graph.neighbors(node_idx)
-                            .any(|n| graph[n].position == (node_pos.0, node_pos.1.saturating_sub(1))),
-                        _ => unreachable!()
+                        (0, 1) | (0, -1) => {
+                            !graph
+                                .neighbors(node_idx)
+                                .any(|n| graph[n].position == (node_pos.0 + 1, node_pos.1))
+                                && !graph.neighbors(node_idx).any(|n| {
+                                    graph[n].position == (node_pos.0.saturating_sub(1), node_pos.1)
+                                })
+                        }
+                        (1, 0) | (-1, 0) => {
+                            !graph
+                                .neighbors(node_idx)
+                                .any(|n| graph[n].position == (node_pos.0, node_pos.1 + 1))
+                                && !graph.neighbors(node_idx).any(|n| {
+                                    graph[n].position == (node_pos.0, node_pos.1.saturating_sub(1))
+                                })
+                        }
+                        _ => unreachable!(),
                     };
-    
+
                     if corner {
                         sides += 2;
                         visited.insert(node_pos);
@@ -123,7 +137,7 @@ impl Region {
                 }
             }
         }
-    
+
         sides
     }
 
@@ -407,13 +421,20 @@ EEEC";
         let sides: Vec<(char, usize)> = subgraphs
             .iter()
             .map(|sg| {
-                let element = sg.node_indices().next().map(|idx| sg[idx].character).unwrap();
+                let element = sg
+                    .node_indices()
+                    .next()
+                    .map(|idx| sg[idx].character)
+                    .unwrap();
                 let sides = Region::calculate_sides(sg);
                 (element, sides)
             })
             .collect();
 
-        assert_eq!(sides, vec![('A', 4), ('B', 4), ('C', 8), ('D', 4), ('E', 4)]);
+        assert_eq!(
+            sides,
+            vec![('A', 4), ('B', 4), ('C', 8), ('D', 4), ('E', 4)]
+        );
 
         assert_eq!(regions.len(), 5);
 
