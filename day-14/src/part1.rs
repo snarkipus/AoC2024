@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use nom::{
     bytes::complete::tag,
     character::complete::{char, digit1, newline},
@@ -115,11 +117,33 @@ impl Grid {
     }
 }
 
-const XDIM: usize = 101;
-const YDIM: usize = 103;
+impl Display for Grid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in self.0.iter() {
+            for cell in row.iter() {
+                match &cell.robots {
+                    Some(robots) => {
+                        if robots.len() > 1 {
+                            write!(f, "X")?;
+                        } else {
+                            write!(f, "#")?;
+                        }
+                    }
+                    None => write!(f, ".")?,
+                }
+            }
+            writeln!(f)?;
+        }
 
-// const XDIM: usize = 11;
-// const YDIM: usize = 7;
+        Ok(())
+    }
+}
+
+// const XDIM: usize = 101;
+// const YDIM: usize = 103;
+
+const XDIM: usize = 11;
+const YDIM: usize = 7;
 
 const TICKS: usize = 100;
 
