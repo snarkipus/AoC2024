@@ -147,9 +147,9 @@ mod grid {
         pub(crate) fn transpose(&mut self) -> miette::Result<()> {
             let height = self.height as usize;
             let width = self.width as usize;
-        
+
             let mut transposed = vec![vec![]; width];
-        
+
             for (j, row) in transposed.iter_mut().enumerate().take(width) {
                 for (i, cell) in self.cells.iter().enumerate().take(height) {
                     let mut new_cell = cell[j].clone();
@@ -158,7 +158,7 @@ mod grid {
                     row.push(new_cell);
                 }
             }
-        
+
             self.cells = transposed;
             std::mem::swap(&mut self.width, &mut self.height);
             Ok(())
@@ -196,9 +196,9 @@ mod grid {
 
 mod robot {
     use crate::part1::{
+        error::GameError,
         grid::{Grid, GridCell},
         parser::{EMPTY, ROBOT},
-        error::GameError,
     };
 
     #[derive(Debug, Clone, Copy)]
@@ -214,13 +214,13 @@ mod robot {
 
     #[derive(Debug, Clone)]
     pub(crate) struct Robot {
-        pub(crate) current: GridCell
+        pub(crate) current: GridCell,
     }
 
     impl Robot {
         pub(crate) fn new(x: i32, y: i32) -> Self {
             Self {
-                current: GridCell::new(x, y, ROBOT)
+                current: GridCell::new(x, y, ROBOT),
             }
         }
 
@@ -230,57 +230,60 @@ mod robot {
             direction: Direction,
         ) -> miette::Result<()> {
             match direction {
-                Direction::Right => {
-                    self.execute_movement(grid)
-                }
+                Direction::Right => self.execute_movement(grid),
                 Direction::Left => {
-                    grid.reverse_rows()
-                        .map_err(|e| GameError::Movement(format!("Failed to reverse rows: {}", e)))?;
+                    grid.reverse_rows().map_err(|e| {
+                        GameError::Movement(format!("Failed to reverse rows: {}", e))
+                    })?;
                     self.current.x = grid.width - 1 - self.current.x;
-                    
+
                     let result = self.execute_movement(grid);
-                    
+
                     // Always reverse back, but preserve the original error if there was one
-                    let reverse_result = grid.reverse_rows()
-                        .map_err(|e| GameError::Movement(format!("Failed to reverse rows back: {}", e)));
+                    let reverse_result = grid.reverse_rows().map_err(|e| {
+                        GameError::Movement(format!("Failed to reverse rows back: {}", e))
+                    });
                     self.current.x = grid.width - 1 - self.current.x;
-                    
+
                     result.and(Ok(reverse_result?))
                 }
                 Direction::Up => {
                     grid.transpose()
                         .map_err(|e| GameError::Movement(format!("Failed to transpose: {}", e)))?;
                     std::mem::swap(&mut self.current.x, &mut self.current.y);
-                    
-                    grid.reverse_rows()
-                        .map_err(|e| GameError::Movement(format!("Failed to reverse rows: {}", e)))?;
+
+                    grid.reverse_rows().map_err(|e| {
+                        GameError::Movement(format!("Failed to reverse rows: {}", e))
+                    })?;
                     self.current.x = grid.width - 1 - self.current.x;
-                    
+
                     let result = self.execute_movement(grid);
-                    
+
                     // Always clean up transformations, but preserve the original error
-                    let cleanup_result = grid.reverse_rows()
+                    let cleanup_result = grid
+                        .reverse_rows()
                         .and_then(|_| {
                             self.current.x = grid.width - 1 - self.current.x;
                             grid.transpose()
                         })
                         .map_err(|e| GameError::Movement(format!("Failed to restore grid: {}", e)));
                     std::mem::swap(&mut self.current.x, &mut self.current.y);
-                    
+
                     result.and(Ok(cleanup_result?))
                 }
                 Direction::Down => {
                     grid.transpose()
                         .map_err(|e| GameError::Movement(format!("Failed to transpose: {}", e)))?;
                     std::mem::swap(&mut self.current.x, &mut self.current.y);
-                    
+
                     let result = self.execute_movement(grid);
-                    
+
                     // Always clean up, but preserve the original error
-                    let cleanup_result = grid.transpose()
+                    let cleanup_result = grid
+                        .transpose()
                         .map_err(|e| GameError::Movement(format!("Failed to restore grid: {}", e)));
                     std::mem::swap(&mut self.current.x, &mut self.current.y);
-                    
+
                     result.and(Ok(cleanup_result?))
                 }
             }

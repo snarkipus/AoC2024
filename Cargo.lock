@@ -487,6 +487,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "day-16"
+version = "0.1.0"
+dependencies = [
+ "divan",
+ "itertools",
+ "miette",
+ "nom",
+ "nom_locate",
+ "petgraph",
+ "rstest",
+ "test-log",
+ "thiserror 2.0.5",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
