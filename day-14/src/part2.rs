@@ -199,9 +199,9 @@ fn walk_robots(robots: &mut [Robot], ticks: usize, grid: &mut Grid) -> miette::R
         robots.iter_mut().for_each(|robot| {
             robot.step();
         });
-        
+
         println!("time: {tick}\n{grid}");
-        
+
         grid.clear();
         for robot in robots.iter() {
             let (x, y) = robot.position;
