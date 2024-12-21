@@ -496,6 +496,7 @@ dependencies = [
  "nom",
  "nom_locate",
  "petgraph",
+ "rayon",
  "rstest",
  "test-log",
  "thiserror 2.0.5",

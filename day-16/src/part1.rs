@@ -1,34 +1,38 @@
-use miette::Result;
+use graph::FastGraph;
 use types::{CellType, Direction, Position};
 
-pub fn process(input: &str) -> Result<String> {
-    let cells = parser::parse_grid(input)?;
-    let (graph, position_to_node) = graph::build_graph(&cells)?;
+pub fn process(input: &str) -> miette::Result<String> {
+    let grid = parser::parse_grid(input)?;
+    let (width, height) = grid.dimensions();
+    let mut fast_graph = FastGraph::new(width, height);
 
-    let start_pos = cells.find_special_cell(CellType::Start)?;
-    let end_pos = cells.find_special_cell(CellType::End)?;
+    // Create nodes
+    for (pos, cell_type) in grid.iter_positions() {
+        if cell_type != CellType::Wall {
+            for dir in Direction::all() {
+                fast_graph.add_node(pos, cell_type, dir);
+            }
+        }
+    }
 
-    // Start facing right (arbitrary but consistent choice)
-    let start_node = position_to_node
-        .get(&(start_pos, Direction::Right))
+    // Add edges
+    fast_graph.add_edges();
+
+    let start_pos = grid.find_special_cell(CellType::Start)?;
+    let end_pos = grid.find_special_cell(CellType::End)?;
+
+    // Get starting node (facing right)
+    let start_node = fast_graph
+        .get_node(start_pos, Direction::Right)
         .ok_or(error::PuzzleError::InvalidPosition(start_pos))?;
 
-    // Find shortest path to any node at end position
+    // Use A* to find shortest path
     let result = petgraph::algo::astar(
-        &graph,
-        *start_node,
-        |n| graph[n].cell_type == CellType::End,
+        &fast_graph.graph,
+        start_node,
+        |n| fast_graph.graph[n].cell_type == CellType::End,
         |e| *e.weight(),
-        |n| {
-            manhattan_distance(
-                position_to_node
-                    .iter()
-                    .find(|(_, &node)| node == n)
-                    .map(|((pos, _), _)| *pos)
-                    .expect("All nodes must have positions"),
-                end_pos,
-            )
-        },
+        |n| manhattan_distance(fast_graph.graph[n].pos, end_pos),
     );
 
     result
@@ -37,25 +41,32 @@ pub fn process(input: &str) -> Result<String> {
 }
 
 fn manhattan_distance(pos1: Position, pos2: Position) -> u32 {
-    ((pos1.x.abs_diff(pos2.x)) + (pos1.y.abs_diff(pos2.y))) as u32
+    (pos1.x().abs_diff(pos2.x()) + pos1.y().abs_diff(pos2.y())) as u32
 }
 
 mod types {
-    use crate::part1::error;
-
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct Position {
-        pub x: usize,
-        pub y: usize,
-    }
+    pub struct Position(u32);
 
     impl Position {
         pub fn new(x: usize, y: usize) -> Self {
-            Self { x, y }
+            debug_assert!(
+                x < (1 << 16) && y < (1 << 16),
+                "Position coordinates must fit in 16 bits"
+            );
+            Self(((y as u32) << 16) | (x as u32))
+        }
+
+        pub fn x(&self) -> usize {
+            (self.0 & 0xFFFF) as usize
+        }
+
+        pub fn y(&self) -> usize {
+            (self.0 >> 16) as usize
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Direction {
         Up,
         Down,
@@ -64,6 +75,15 @@ mod types {
     }
 
     impl Direction {
+        pub const fn as_index(self) -> usize {
+            match self {
+                Self::Up => 0,
+                Self::Down => 1,
+                Self::Left => 2,
+                Self::Right => 3,
+            }
+        }
+
         pub fn all() -> [Direction; 4] {
             [Self::Up, Self::Down, Self::Left, Self::Right]
         }
@@ -77,7 +97,7 @@ mod types {
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CellType {
         Start,
         End,
@@ -86,7 +106,7 @@ mod types {
     }
 
     impl TryFrom<char> for CellType {
-        type Error = error::PuzzleError;
+        type Error = crate::part1::error::PuzzleError;
 
         fn try_from(c: char) -> Result<Self, Self::Error> {
             match c {
@@ -94,16 +114,15 @@ mod types {
                 'E' => Ok(Self::End),
                 '#' => Ok(Self::Wall),
                 '.' => Ok(Self::Empty),
-                _ => Err(error::PuzzleError::InvalidCell(c)),
+                _ => Err(crate::part1::error::PuzzleError::InvalidCell(c)),
             }
         }
     }
 
-    // A node in our graph represents a position and facing direction
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy)]
     pub struct NodeState {
+        pub pos: Position,
         pub cell_type: CellType,
-        pub direction: Direction,
     }
 }
 
@@ -148,13 +167,6 @@ mod parser {
     }
 
     impl Grid {
-        pub fn _get(&self, pos: Position) -> Option<CellType> {
-            self.cells
-                .get(pos.y)
-                .and_then(|row| row.get(pos.x))
-                .copied()
-        }
-
         pub fn dimensions(&self) -> (usize, usize) {
             let height = self.cells.len();
             let width = self.cells.first().map_or(0, |row| row.len());
@@ -193,53 +205,80 @@ mod parser {
 }
 
 mod graph {
+    use crate::part1::types::*;
     use petgraph::graph::{DiGraph, NodeIndex};
-    use std::collections::HashMap;
-
-    use crate::part1::{
-        error::PuzzleError,
-        types::{CellType, Direction, NodeState, Position},
-    };
-
-    pub type Graph = DiGraph<NodeState, u32>;
-    pub type NodeLookup = HashMap<(Position, Direction), NodeIndex>;
 
     const MOVEMENT_COST: u32 = 1;
 
-    pub fn build_graph(
-        grid: &crate::part1::parser::Grid,
-    ) -> Result<(Graph, NodeLookup), PuzzleError> {
-        let mut graph = Graph::new();
-        let mut position_to_node = NodeLookup::new();
+    pub struct FastGraph {
+        // Core graph for pathfinding
+        pub graph: DiGraph<NodeState, u32>,
+        // Fast lookup from position+direction to node index
+        nodes: Vec<Option<NodeIndex>>,
+        width: usize,
+        height: usize,
+    }
 
-        // Create nodes for each position/direction combination
-        for (pos, cell_type) in grid.iter_positions() {
-            if cell_type != CellType::Wall {
-                for direction in Direction::all() {
-                    let node = graph.add_node(NodeState {
-                        cell_type,
-                        direction,
-                    });
-                    position_to_node.insert((pos, direction), node);
-                }
+    impl FastGraph {
+        pub fn new(width: usize, height: usize) -> Self {
+            let size = width * height * 4; // 4 directions per position
+            Self {
+                graph: DiGraph::new(),
+                nodes: vec![None; size],
+                width,
+                height,
             }
         }
 
-        // Add edges between nodes
-        let (width, height) = grid.dimensions();
-        for ((pos, from_dir), &from_idx) in position_to_node.iter() {
-            // Check all possible moves from current position
-            let possible_moves = get_possible_moves(*pos, width, height);
-
-            for (next_pos, to_dir) in possible_moves {
-                if let Some(&to_idx) = position_to_node.get(&(next_pos, to_dir)) {
-                    let turn_cost = from_dir.turn_cost(to_dir);
-                    graph.add_edge(from_idx, to_idx, MOVEMENT_COST + turn_cost);
-                }
-            }
+        fn get_index(&self, pos: Position, dir: Direction) -> usize {
+            (pos.y() * self.width + pos.x()) * 4 + dir.as_index()
         }
 
-        Ok((graph, position_to_node))
+        pub fn add_node(
+            &mut self,
+            pos: Position,
+            cell_type: CellType,
+            direction: Direction,
+        ) -> NodeIndex {
+            let state = NodeState { pos, cell_type };
+            let node_idx = self.graph.add_node(state);
+            let idx = self.get_index(pos, direction);
+            self.nodes[idx] = Some(node_idx);
+            node_idx
+        }
+
+        pub fn get_node(&self, pos: Position, dir: Direction) -> Option<NodeIndex> {
+            let idx = self.get_index(pos, dir);
+            self.nodes.get(idx).copied().flatten()
+        }
+
+        pub fn add_edges(&mut self) {
+            let mut edges = Vec::new();
+
+            // Collect all edges first
+            for y in 0..self.height {
+                for x in 0..self.width {
+                    let pos = Position::new(x, y);
+                    for from_dir in Direction::all() {
+                        if let Some(from_idx) = self.get_node(pos, from_dir) {
+                            // Try all possible moves from this position
+                            let possible_moves = get_possible_moves(pos, self.width, self.height);
+                            for (next_pos, to_dir) in possible_moves {
+                                if let Some(to_idx) = self.get_node(next_pos, to_dir) {
+                                    let cost = MOVEMENT_COST + from_dir.turn_cost(to_dir);
+                                    edges.push((from_idx, to_idx, cost));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add all edges at once
+            for (from, to, cost) in edges {
+                self.graph.add_edge(from, to, cost);
+            }
+        }
     }
 
     fn get_possible_moves(
@@ -247,20 +286,19 @@ mod graph {
         width: usize,
         height: usize,
     ) -> Vec<(Position, Direction)> {
-        let mut moves = Vec::new();
+        let mut moves = Vec::with_capacity(4);
 
-        // Try all possible moves, checking bounds
-        if pos.x > 0 {
-            moves.push((Position::new(pos.x - 1, pos.y), Direction::Left));
+        if pos.x() > 0 {
+            moves.push((Position::new(pos.x() - 1, pos.y()), Direction::Left));
         }
-        if pos.x + 1 < width {
-            moves.push((Position::new(pos.x + 1, pos.y), Direction::Right));
+        if pos.x() + 1 < width {
+            moves.push((Position::new(pos.x() + 1, pos.y()), Direction::Right));
         }
-        if pos.y > 0 {
-            moves.push((Position::new(pos.x, pos.y - 1), Direction::Up));
+        if pos.y() > 0 {
+            moves.push((Position::new(pos.x(), pos.y() - 1), Direction::Up));
         }
-        if pos.y + 1 < height {
-            moves.push((Position::new(pos.x, pos.y + 1), Direction::Down));
+        if pos.y() + 1 < height {
+            moves.push((Position::new(pos.x(), pos.y() + 1), Direction::Down));
         }
 
         moves
