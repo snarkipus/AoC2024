@@ -1,20 +1,23 @@
-// input format: [opcode, operand, opcode, operand, ...]
-//
-// INSTRUCTION SET
-// 0: 'adv' division: divide <a> by 2^<combo operand> and write the result to <a>
-// 1: 'bxl' bitwise XOR: bitwise XOR <b> and <literal operand> and write the result to <b>
-// 2: 'bst' modulo 8: <combo operand> modulo 8 and write the result to <b>
-// 3: 'jnz' jump not zero: if <a> is not zero, jump to <literal operand> (no PC increment)
-// 4: 'bxc' bitwise XOR: bitwise XOR <b> and <c> and write the result to <b>
-// 5: 'out' output: output <combo operand> modulo 8 (csv appended to output)
-// 6: 'bdv' division: divide <a> by 2^<combo operand> and write the result to <b>
-// 7: 'cdv' division: divide <a> by 2^<combo operand> and write the result to <c>
+pub fn process(input: &str) -> miette::Result<String> {
+    let (_, (init_regs, instructions)) =
+        parser::parse_input(input).map_err(|e| miette::miette!("Failed to parse input: {}", e))?;
 
-pub type Registers = (usize, usize, usize);
-pub type Instructions = Vec<usize>;
+    let mut processor = processor::Processor::new(init_regs, instructions);
+    let output = processor.run()?;
+
+    Ok(output
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(","))
+}
 
 pub mod processor {
+    use miette::miette;
     use std::fmt;
+
+    use super::parser::RegisterValues;
+    pub type Program = Vec<usize>;
 
     #[derive(Debug, Clone, Copy)]
     pub struct Register(usize);
@@ -24,100 +27,158 @@ pub mod processor {
             Self(val)
         }
 
-        pub fn get(&self) -> usize {
+        pub fn read(&self) -> usize {
             self.0
         }
 
-        fn div(&mut self, operand: usize) {
-            self.0 /= 2usize.pow(operand as u32);
-        }
-
-        fn xor(&mut self, operand: usize) {
-            self.0 ^= operand;
-        }
-
-        fn mod8(&mut self, operand: usize) {
-            self.0 = operand % 8;
+        pub fn write(&mut self, val: usize) {
+            self.0 = val;
         }
     }
 
     #[derive(Debug)]
     pub struct Processor {
-        pub reg_a: Register,
-        pub reg_b: Register,
-        pub reg_c: Register,
-        pub instructions: Vec<usize>,
+        pub register_a: Register,
+        pub register_b: Register,
+        pub register_c: Register,
+        pub program: Program,
         pub pc: usize,
         pub output: Vec<usize>,
     }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Instruction(OpCode, Operand);
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct OpCode(pub usize);
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Operand(pub usize);
 
     impl Processor {
         pub const MAX_STEPS: usize = 1000;
         pub const MAX_OUTPUT: usize = 100;
 
-        pub fn new(reg_a: usize, reg_b: usize, reg_c: usize, instructions: Vec<usize>) -> Self {
+        // INIT
+        pub fn new(init: RegisterValues, program: Program) -> Self {
             Self {
-                reg_a: Register::new(reg_a),
-                reg_b: Register::new(reg_b),
-                reg_c: Register::new(reg_c),
-                instructions,
+                register_a: Register::new(init[0]),
+                register_b: Register::new(init[1]),
+                register_c: Register::new(init[2]),
+                program,
                 pc: 0,
                 output: Vec::new(),
+            }
+        }
+
+        // FETCH
+        fn fetch(&self) -> miette::Result<Instruction> {
+            let slice = self
+                .program
+                .get(self.pc..self.pc + 2)
+                .ok_or(miette!("Failed to fetch instruction"))?;
+            Ok(Instruction(OpCode(slice[0]), Operand(slice[1])))
+        }
+
+        // DECODE & EXECUTE
+        fn decode_execute(&mut self, instruction: Instruction) -> miette::Result<()> {
+            match instruction {
+                // 'adv' division: divide <a> by 2^<combo operand> and write the result to <a>
+                Instruction(OpCode(0), Operand(operand)) => {
+                    let num = self.register_a.read();
+                    let operand = self.get_combo(operand);
+                    let divisor = 2usize.pow(operand as u32);
+                    self.register_a.write(num / divisor);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'bxl' bitwise XOR: bitwise XOR <b> and <literal operand> and write the result to <b>
+                Instruction(OpCode(1), Operand(operand)) => {
+                    let val = self.register_b.read();
+                    let result = val ^ operand;
+                    self.register_b.write(result);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'bst' modulo 8: <combo operand> modulo 8 and write the result to <b>
+                Instruction(OpCode(2), Operand(operand)) => {
+                    let val = self.get_combo(operand);
+                    let result = val % 8;
+                    self.register_b.write(result);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'jnz' jump not zero: if <a> is not zero, jump to <literal operand> (no PC increment)
+                Instruction(OpCode(3), Operand(operand)) => {
+                    if self.register_a.read() != 0 {
+                        self.pc = operand;
+                    }
+                    Ok(())
+                }
+                // 'bxc' bitwise XOR: bitwise XOR <b> and <c> and write the result to <b>
+                Instruction(OpCode(4), Operand(_operand)) => {
+                    let val_1 = self.register_b.read();
+                    let val_2 = self.register_c.read();
+                    let result = val_1 ^ val_2;
+                    self.register_b.write(result);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'out' output: output <combo operand> modulo 8 (csv appended to output)
+                Instruction(OpCode(5), Operand(operand)) => {
+                    let val = self.get_combo(operand);
+                    let result = val % 8;
+                    self.output.push(result);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'bdv' division: divide <a> by 2^<combo operand> and write the result to <b>
+                Instruction(OpCode(6), Operand(operand)) => {
+                    let num = self.register_a.read();
+                    let operand = self.get_combo(operand);
+                    let divisor = 2usize.pow(operand as u32);
+                    self.register_b.write(num / divisor);
+                    self.pc += 2;
+                    Ok(())
+                }
+                // 'cdv' division: divide <a> by 2^<combo operand> and write the result to <c>
+                Instruction(OpCode(7), Operand(operand)) => {
+                    let num = self.register_a.read();
+                    let operand = self.get_combo(operand);
+                    let divisor = 2usize.pow(operand as u32);
+                    self.register_c.write(num / divisor);
+                    self.pc += 2;
+                    Ok(())
+                }
+                _ => panic!("Invalid instruction: {:?}", instruction),
             }
         }
 
         fn get_combo(&self, value: usize) -> usize {
             match value {
                 0..=3 => value,
-                4 => self.reg_a.get(),
-                5 => self.reg_b.get(),
-                6 => self.reg_c.get(),
+                4 => self.register_a.read(),
+                5 => self.register_b.read(),
+                6 => self.register_c.read(),
                 _ => panic!("Invalid combo value: {}", value),
             }
         }
 
-        pub fn run(&mut self) -> &Vec<usize> {
+        pub fn run(&mut self) -> miette::Result<&Vec<usize>> {
             let mut steps = 0;
 
-            while self.pc < self.instructions.len() - 1 {
-                let opcode = self.instructions[self.pc];
-                let operand = self.instructions[self.pc + 1];
-                println!("{}", self); 
+            while self.pc < self.program.len() - 1 {
+                let instruction = self.fetch()?;
+                self.decode_execute(instruction)?;
 
-                self.pc += 2;
-                
-                
-                
-                steps += 1;
                 if steps > Processor::MAX_STEPS {
                     break;
                 }
 
-                match opcode {
-                    0 => self.reg_a.div(self.get_combo(operand)),
-                    1 => self.reg_b.xor(operand),
-                    2 => self.reg_b.mod8(self.get_combo(operand)),
-                    3 => {
-                        if self.reg_a.get() != 0 {
-                            println!("  Jump triggered! Jumping to {}", operand);
-                            self.pc = operand;
-                        }
-                    }
-                    4 => self.reg_b.xor(self.reg_c.get()),
-                    5 => {
-                        if self.output.len() < Processor::MAX_OUTPUT {
-                            self.output.push(self.get_combo(operand) % 8);
-                        } else {
-                            break;
-                        }
-                    }
-                    6 => self.reg_b.div(self.get_combo(operand)),
-                    7 => self.reg_c.div(self.get_combo(operand)),
-                    _ => (),
-                }
+                steps += 1;
             }
 
-            &self.output
+            Ok(&self.output)
         }
     }
 
@@ -127,43 +188,33 @@ pub mod processor {
                 f,
                 "PC: {:2} | Instruction: [{},{}] | A: {:10} | B: {:10} | C: {:10} | Out: {:?}",
                 self.pc,
-                self.instructions.get(self.pc).unwrap_or(&0),
-                self.instructions.get(self.pc + 1).unwrap_or(&0),
-                self.reg_a.get(),
-                self.reg_b.get(),
-                self.reg_c.get(),
+                self.program.get(self.pc).unwrap_or(&0),
+                self.program.get(self.pc + 1).unwrap_or(&0),
+                self.register_a.read(),
+                self.register_b.read(),
+                self.register_c.read(),
                 self.output
             )
         }
     }
 }
-pub fn process(input: &str) -> miette::Result<String> {
-    let (_, ((a, b, c), instructions)) =
-        parser::parse_input(input).map_err(|e| miette::miette!("Failed to parse input: {}", e))?;
-
-    let mut processor = processor::Processor::new(a, b, c, instructions);
-    let output = processor.run();
-
-    Ok(output
-        .iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
-        .join(","))
-}
 
 mod parser {
     use nom::{
+        branch::alt,
         bytes::complete::tag,
-        character::complete::{char, digit1, line_ending},
+        character::complete::{char, digit1, line_ending, newline},
         combinator::map_res,
         multi::separated_list1,
         sequence::{preceded, separated_pair},
         IResult,
     };
 
-    use super::{Instructions, Registers};
+    use crate::part1::processor::Program;
 
-    pub fn parse_input(input: &str) -> IResult<&str, (Registers, Instructions)> {
+    pub type RegisterValues = Vec<usize>;
+
+    pub fn parse_input(input: &str) -> IResult<&str, (RegisterValues, Program)> {
         separated_pair(
             parse_registers,
             line_ending,
@@ -171,24 +222,27 @@ mod parser {
         )(input)
     }
 
-    fn parse_registers(input: &str) -> IResult<&str, Registers> {
-        let (input, a) = preceded(tag("Register A: "), map_res(digit1, str::parse))(input)?;
-        let (input, _) = line_ending(input)?;
-        let (input, b) = preceded(tag("Register B: "), map_res(digit1, str::parse))(input)?;
-        let (input, _) = line_ending(input)?;
-        let (input, c) = preceded(tag("Register C: "), map_res(digit1, str::parse))(input)?;
-
-        Ok((input, (a, b, c)))
+    fn parse_registers(input: &str) -> IResult<&str, RegisterValues> {
+        separated_list1(
+            newline,
+            preceded(
+                alt((
+                    tag("Register A: "),
+                    tag("Register B: "),
+                    tag("Register C: "),
+                )),
+                map_res(digit1, str::parse::<usize>),
+            ),
+        )(input)
     }
 
-    fn parse_program(input: &str) -> IResult<&str, Instructions> {
+    fn parse_program(input: &str) -> IResult<&str, Program> {
         preceded(
             tag("Program: "),
             separated_list1(char(','), map_res(digit1, str::parse)),
         )(input)
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -214,8 +268,8 @@ Register B: 0
 Register C: 0
 
 Program: 0,1,5,4,3,0";
-        let (_, ((a, b, c), program)) = parser::parse_input(input).unwrap();
-        assert_eq!((729, 0, 0), (a, b, c));
+        let (_, (regs, program)) = parser::parse_input(input).unwrap();
+        assert_eq!((729, 0, 0), (regs[0], regs[1], regs[2]));
         assert_eq!(vec![0, 1, 5, 4, 3, 0], program);
         Ok(())
     }
@@ -279,35 +333,24 @@ Program: 0,1,5,4,3,0";
         expected_reg_a: None,
         expected_reg_b: Some(44354),
     })]
-    #[case(TestCase {
-        reg_a: 4,
-        reg_b: 0,
-        reg_c: 0,
-        program: vec![5, 0, 3, 0, 5, 1],
-        expected_output: vec![0; processor::Processor::MAX_OUTPUT],
-        expected_reg_a: Some(4),
-        expected_reg_b: None,
-    })]
     fn test_instructions(#[case] test_case: TestCase) -> miette::Result<()> {
         let mut processor = processor::Processor::new(
-            test_case.reg_a,
-            test_case.reg_b,
-            test_case.reg_c,
+            vec![test_case.reg_a, test_case.reg_b, test_case.reg_c],
             test_case.program,
         );
 
-        let output = processor.run();
+        let output = processor.run()?;
 
         if !test_case.expected_output.is_empty() {
             assert_eq!(&test_case.expected_output, output);
         }
 
         if let Some(expected_a) = test_case.expected_reg_a {
-            assert_eq!(expected_a, processor.reg_a.get());
+            assert_eq!(expected_a, processor.register_a.read());
         }
 
         if let Some(expected_b) = test_case.expected_reg_b {
-            assert_eq!(expected_b, processor.reg_b.get());
+            assert_eq!(expected_b, processor.register_b.read());
         }
 
         Ok(())
@@ -315,7 +358,7 @@ Program: 0,1,5,4,3,0";
 
     #[test]
     fn test_processor_display() {
-        let processor = processor::Processor::new(123, 456, 789, vec![0, 1, 2, 3]);
+        let processor = processor::Processor::new(vec![123, 456, 789], vec![0, 1, 2, 3]);
         let display = format!("{}", processor);
         assert!(display.contains("PC:  0"));
         assert!(display.contains("A:        123"));

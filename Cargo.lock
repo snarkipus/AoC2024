@@ -297,7 +297,7 @@ dependencies = [
  "nom",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -357,7 +357,7 @@ dependencies = [
  "rayon",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -373,7 +373,7 @@ dependencies = [
  "nom_locate",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -388,7 +388,7 @@ dependencies = [
  "nom",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -405,7 +405,7 @@ dependencies = [
  "petgraph",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -481,7 +481,7 @@ dependencies = [
  "nom_locate",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -499,7 +499,7 @@ dependencies = [
  "rayon",
  "rstest",
  "test-log",
- "thiserror 2.0.5",
+ "thiserror 2.0.9",
  "tracing",
  "tracing-subscriber",
 ]
@@ -531,9 +531,9 @@ dependencies = [
 
 [[package]]
 name = "divan"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc40f214f0d9e897cfc72e2edfa5c225d3252f758c537f11ac0a80371c073a6"
+checksum = "e0583193020b29b03682d8d33bb53a5b0f50df6daacece12ca99b904cfdcb8c4"
 dependencies = [
  "cfg-if",
  "clap",
@@ -545,9 +545,9 @@ dependencies = [
 
 [[package]]
 name = "divan-macros"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bdb5411188f7f878a17964798c1264b6b0a9f915bd39b20bf99193c923e1b4e"
+checksum = "8dc51d98e636f5e3b0759a39257458b22619cac7e96d932da6eeb052891bb67c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1862,11 +1862,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.5"
+version = "2.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "643caef17e3128658ff44d85923ef2d28af81bb71e0d67bbfe1d76f19a73e053"
+checksum = "f072643fd0190df67a8bab670c20ef5d8737177d6ac6b2e9a236cb096206b2cc"
 dependencies = [
- "thiserror-impl 2.0.5",
+ "thiserror-impl 2.0.9",
 ]
 
 [[package]]
@@ -1882,9 +1882,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.5"
+version = "2.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "995d0bbc9995d1f19d28b7215a9352b0fc3cd3a2d2ec95c2cadc485cdedbcdde"
+checksum = "7b50fa271071aae2e6ee85f842e2e28ba8cd2c5fb67f11fcb1fd70b276f9e7d4"
 dependencies = [
  "proc-macro2",
  "quote",
