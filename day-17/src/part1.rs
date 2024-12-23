@@ -112,6 +112,8 @@ pub mod processor {
                 Instruction(OpCode(3), Operand(operand)) => {
                     if self.register_a.read() != 0 {
                         self.pc = operand;
+                    } else {
+                        self.pc += 2;
                     }
                     Ok(())
                 }
@@ -169,6 +171,7 @@ pub mod processor {
 
             while self.pc < self.program.len() - 1 {
                 let instruction = self.fetch()?;
+                println!("{}", self);
                 self.decode_execute(instruction)?;
 
                 if steps > Processor::MAX_STEPS {
