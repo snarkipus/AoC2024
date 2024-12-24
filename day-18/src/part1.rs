@@ -30,15 +30,15 @@ type Graph = DiGraph<char, ()>;
 pub fn process(input: &str) -> miette::Result<String> {
     let coords = parser::parse(input)?;
     let graph = graph::create_graph(&coords)?;
-    
+
     let start_idx = graph::get_node_index(&graph, START)?;
     let end_idx = graph::get_node_index(&graph, END)?;
-    
+
     let path = dijkstra(&graph, start_idx, Some(end_idx), |_| 1);
     let distance = path
         .get(&end_idx)
         .ok_or_else(|| miette!("No path found to end position"))?;
-    
+
     Ok(distance.to_string())
 }
 
@@ -49,10 +49,10 @@ mod graph {
         let mut grid = create_empty_grid();
         validate_coordinates(coords)?;
         place_walls(&mut grid, coords);
-        
+
         let (mut graph, nodes) = create_nodes(&grid);
         add_edges(&grid, &mut graph, &nodes);
-        
+
         Ok(graph)
     }
 
@@ -63,15 +63,20 @@ mod graph {
     fn validate_coordinates(coords: &[Position]) -> miette::Result<()> {
         for Position(x, y) in coords {
             if *x >= constants::DIM || *y >= constants::DIM {
-                return Err(miette!("Coordinates ({}, {}) out of bounds (max: {})", 
-                    x, y, constants::DIM - 1));
+                return Err(miette!(
+                    "Coordinates ({}, {}) out of bounds (max: {})",
+                    x,
+                    y,
+                    constants::DIM - 1
+                ));
             }
         }
         Ok(())
     }
 
     fn place_walls(grid: &mut Grid, coords: &[Position]) {
-        coords.iter()
+        coords
+            .iter()
             .take(constants::BYTES)
             .for_each(|Position(x, y)| {
                 grid[*y][*x] = '#';
@@ -81,20 +86,20 @@ mod graph {
     fn create_nodes(grid: &Grid) -> (Graph, HashMap<(usize, usize), NodeIndex>) {
         let mut graph = Graph::new();
         let mut nodes = HashMap::new();
-        
+
         for y in 0..constants::DIM {
             for x in 0..constants::DIM {
                 let node = graph.add_node(grid[y][x]);
                 nodes.insert((x, y), node);
             }
         }
-        
+
         (graph, nodes)
     }
 
     fn add_edges(_grid: &Grid, graph: &mut Graph, nodes: &HashMap<(usize, usize), NodeIndex>) {
         const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-        
+
         for y in 0..constants::DIM {
             for x in 0..constants::DIM {
                 let current_node = nodes[&(x, y)];
@@ -117,7 +122,7 @@ mod graph {
     fn get_neighbor_coords(x: usize, y: usize, dx: i32, dy: i32) -> Option<(usize, usize)> {
         let nx = x as i32 + dx;
         let ny = y as i32 + dy;
-        
+
         if nx >= 0 && ny >= 0 && nx < constants::DIM as i32 && ny < constants::DIM as i32 {
             Some((nx as usize, ny as usize))
         } else {
@@ -129,7 +134,7 @@ mod graph {
         if x >= constants::DIM || y >= constants::DIM {
             return Err(miette!("Position ({}, {}) out of bounds", x, y));
         }
-        
+
         let idx = y * constants::DIM + x;
         graph
             .node_indices()
@@ -235,14 +240,14 @@ mod tests {
                 Position(2, 1),
                 Position(2, 2),
             ];
-            
+
             let graph = graph::create_graph(&coords)?;
             let start_idx = graph::get_node_index(&graph, Position(0, 0))?;
             let end_idx = graph::get_node_index(&graph, Position(3, 3))?;
-            
+
             let paths = dijkstra(&graph, start_idx, Some(end_idx), |_| 1);
             let distance = paths.get(&end_idx).expect("Should find path");
-            
+
             assert_eq!(*distance, 6);
             Ok(())
         }
@@ -254,13 +259,15 @@ mod tests {
                 Position(0, constants::DIM - 1),
                 Position(constants::DIM - 1, 0),
             ];
-            
+
             let graph = graph::create_graph(&coords)?;
-            
+
             assert!(graph::get_node_index(&graph, START).is_ok());
             assert!(graph::get_node_index(&graph, END).is_ok());
-            assert!(graph::get_node_index(&graph, Position(constants::DIM, constants::DIM)).is_err());
-            
+            assert!(
+                graph::get_node_index(&graph, Position(constants::DIM, constants::DIM)).is_err()
+            );
+
             Ok(())
         }
     }
