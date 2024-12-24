@@ -21,3 +21,6 @@ test-log.workspace = true
 name = "day-19-bench"
 path = "benches/benchmarks.rs"
 harness = false
+
+[features]
+debug = []
