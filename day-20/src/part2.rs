@@ -25,13 +25,8 @@ pub fn process(input: &str) -> miette::Result<String> {
     let original_path_length = pathing::find_shortest_path(&path_grid, start, end)?;
 
     let candidates = shortcuts::find_candidates(&path_grid)?;
-    let improvements = shortcuts::evaluate_candidates(
-        &path_grid,
-        &candidates,
-        start,
-        end,
-        original_path_length,
-    )?;
+    let improvements =
+        shortcuts::evaluate_candidates(&path_grid, &candidates, start, end, original_path_length)?;
 
     Ok(improvements.len().to_string())
 }
@@ -161,10 +156,10 @@ mod shortcuts {
     pub fn find_candidates(grid: &PathGrid) -> miette::Result<HashSet<Position>> {
         let mut candidates = HashSet::new();
         let path_vertices = get_path_vertices(grid);
-        
+
         // Scale up radius based on grid size
         let max_radius = (grid.width.max(grid.height) / 2).min(20);
-        
+
         for &pos in &path_vertices {
             for radius in 1..=max_radius {
                 let points = get_points_at_radius(grid, pos, radius);
@@ -172,11 +167,11 @@ mod shortcuts {
                     .into_iter()
                     .filter(|&p| is_valid_position(grid, p))
                     .collect();
-                    
+
                 candidates.extend(new_candidates);
             }
         }
-        
+
         Ok(candidates)
     }
 
@@ -266,26 +261,26 @@ mod shortcuts {
     ) -> miette::Result<HashSet<Position>> {
         let mut shortcuts = HashSet::new();
         let mut visited = HashSet::new();
-        
+
         // Get original path length
         let original_length = pathing::find_shortest_path(grid, start, end)?;
-        
+
         // Check shortcuts at increasing distances
         for radius in 1..=20 {
             let points_at_radius = get_points_at_radius(grid, point, radius);
-            
+
             for pos in points_at_radius {
                 if visited.contains(&pos) {
                     continue;
                 }
                 visited.insert(pos);
-                
+
                 // Only consider positions that aren't walls
                 if !grid.has_vertex(pos) {
                     // Test if this shortcut actually improves the path
                     let mut test_grid = grid.clone();
                     test_grid.add_vertex(pos);
-                    
+
                     if let Ok(new_length) = pathing::find_shortest_path(&test_grid, start, end) {
                         let improvement = original_length - new_length;
                         if improvement >= SHORTCUT_THRESHOLD {
@@ -295,11 +290,15 @@ mod shortcuts {
                 }
             }
         }
-        
+
         Ok(shortcuts)
     }
 
-    pub(crate) fn get_points_at_radius(grid: &PathGrid, center: Position, radius: usize) -> HashSet<Position> {
+    pub(crate) fn get_points_at_radius(
+        grid: &PathGrid,
+        center: Position,
+        radius: usize,
+    ) -> HashSet<Position> {
         let mut points = HashSet::new();
         let (cx, cy) = (center.0 as i32, center.1 as i32);
         let width = grid.width as i32;
@@ -320,7 +319,7 @@ mod shortcuts {
                 let x = cx + dx;
                 let y1 = cy + y_offset;
                 let y2 = cy - y_offset;
-                
+
                 if x >= 0 && x < width {
                     if y1 >= 0 && y1 < height {
                         points.insert((x as usize, y1 as usize));
@@ -331,7 +330,7 @@ mod shortcuts {
                 }
             }
         }
-        
+
         points
     }
 
@@ -347,7 +346,7 @@ mod shortcuts {
         if grid.has_vertex(pos) {
             return false;
         }
-        
+
         // Check if position has adjacent paths
         let neighbors = [
             (pos.0.wrapping_sub(1), pos.1),
@@ -355,8 +354,9 @@ mod shortcuts {
             (pos.0, pos.1.wrapping_sub(1)),
             (pos.0, pos.1 + 1),
         ];
-        
-        neighbors.iter()
+
+        neighbors
+            .iter()
             .filter(|&&(x, y)| x < grid.width && y < grid.height)
             .any(|&pos| grid.has_vertex(pos))
     }
@@ -594,8 +594,9 @@ mod tests {
         println!("Found {} candidates", candidates.len());
 
         // Debug each candidate
-        let improvements = shortcuts::evaluate_candidates(&path_grid, &candidates, start, end, original_length)?;
-        
+        let improvements =
+            shortcuts::evaluate_candidates(&path_grid, &candidates, start, end, original_length)?;
+
         println!("\nSignificant improvements:");
         for (pos, improvement) in improvements.iter() {
             println!("Position {:?} improves by {} steps", pos, improvement);
@@ -626,33 +627,33 @@ mod tests {
     fn test_process_large_debug() -> miette::Result<()> {
         let start = Instant::now();
         println!("\nStarting large example debug test");
-        
+
         let parsed_grid = parser::parse_input(EXAMPLE_LARGE)?;
         let grid = graph::create_grid(&parsed_grid)?;
         let (start_pos, end_pos) = graph::find_endpoints(&parsed_grid)?;
         let path_grid = graph::create_pathfinding_grid(&grid);
-        
+
         println!("Grid dimensions: {}x{}", path_grid.width, path_grid.height);
-        
+
         let candidates = shortcuts::find_candidates(&path_grid)?;
         println!("Found {} candidates", candidates.len());
-        
+
         let original_length = pathing::find_shortest_path(&path_grid, start_pos, end_pos)?;
         println!("Original path length: {}", original_length);
-        
+
         let improvements = shortcuts::evaluate_candidates(
             &path_grid,
             &candidates,
             start_pos,
             end_pos,
-            original_length
+            original_length,
         )?;
-        
+
         println!("\nFound {} improvements:", improvements.len());
         for (pos, improvement) in improvements.iter().take(10) {
             println!("Position {:?} improves by {} steps", pos, improvement);
         }
-        
+
         println!("\nProcessing time: {:?}", start.elapsed());
         Ok(())
     }

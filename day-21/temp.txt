@@ -1,0 +1,43 @@
+029A
+
+STEP 1: '0'
+
+Numeric Keypad: A (starting point) -> 0
+- '<' + 'A'ction
+- Result: '<','A'
+
+1st Direction Keypad: A (starting point) -> '<' (Move command for Numeric Pad ~ '0')
+- '<','v','<' + 'A'ction
+- Result: '<','v','<','A'
+
+2nd Direction Keypad: 
+- Step 2.1: A (starting point) -> '<' (Move command for 1st Direction Pad ~ '<')
+    - '<','v','<' + 'A'ction
+- Step 2.2: '<' -> 'v' (Move command for 1st Direction Pad ~ 'v')
+    - '>' + 'A'ction
+- Step 2.3: 'v' -> '<' (Move command for 1st Direction Pad ~ '<')
+    - '<' + 'A'ction
+- Result: '<','v','<','A','>','A','<','A'
+
+3rd Direction Keypad: 
+- Step 3.1: A (starting point) -> '<' (Move command for 2nd Direction Pad ~ '<')
+    - '<','v','<' + 'A'ction
+- Step 3.2: '<' -> 'v' (Move command for 2nd Direction Pad ~ 'v')
+    - '>' + 'A'ction
+- Step 3.3: 'v' -> '<' (Move command for 2nd Direction Pad ~ '<')
+    - '<' + 'A'ction
+- Step 3.4: '<' -> 'A' (Move command for 2nd Direction Pad ~ 'A')
+    - '>','^','>' + 'A'ction
+- Step 3.5: 'A' -> '>' (Move command for 2nd Direction Pad ~ '>')
+    - 'v' + 'A'ction
+- Step 3.6: '>' -> 'A' (Move command for 2nd Direction Pad ~ 'A')
+    - '^' + 'A'ction
+- Step 3.7: 'A' -> '<' (Move command for 2nd Direction Pad ~ '<')
+    - '<','v','<' + 'A'ction
+- Step 3.8: '<' -> 'A' (Move command for 2nd Direction Pad ~ 'A')
+    - '>','^','>' + 'A'ction
+- Result: '<','v','<','A','>','A','<','A','>','^','>','A','v','A','^','A','<','v','<','A','>','^','>','A'
+
+
+
+
