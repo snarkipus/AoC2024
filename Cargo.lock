@@ -589,6 +589,7 @@ dependencies = [
  "itertools",
  "miette",
  "nom",
+ "rayon",
  "rstest",
  "test-log",
  "thiserror 2.0.9",

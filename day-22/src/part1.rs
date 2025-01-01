@@ -1,6 +1,7 @@
 
 use miette::{Diagnostic, Result};
 use thiserror::Error;
+use rayon::prelude::*;
 
 #[derive(Debug, Error, Diagnostic)]
 #[error("Failed to parse integer")]
@@ -16,10 +17,10 @@ pub fn process(input: &str) -> miette::Result<String> {
         .map(|line| line.parse::<usize>().map_err(ParseError))
         .collect::<Result<Vec<usize>, _>>()?;
 
-    let result = input.iter_mut().fold(0, |acc, secret_number| {
+    let result = input.par_iter_mut().map(|secret_number| {
         evolution_process(secret_number, VALUE_COUNT);
-        acc as usize + *secret_number
-    });
+        *secret_number
+    }).sum::<usize>();
 
     Ok(result.to_string())
 }
