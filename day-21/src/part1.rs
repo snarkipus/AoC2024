@@ -1,36 +1,36 @@
 use crate::directional::create_directional_keypad;
 use crate::numeric::create_numeric_keypad;
-use std::collections::HashMap;
 use rayon::prelude::*;
+use std::collections::HashMap;
 
 pub const ROBOT_LEVELS: usize = 1;
 
 pub fn process(input: &str) -> miette::Result<(HashMap<String, String>, usize)> {
     let input_sequences: Vec<String> = input.lines().map(|s| s.to_string()).collect();
-    
+
     // Process sequences in parallel
     let solutions: HashMap<_, _> = input_sequences
-        .par_iter()  // Parallel iterator
+        .par_iter() // Parallel iterator
         .map(|sequence| {
             let numeric_keypad = create_numeric_keypad();
             let directional_keypad = create_directional_keypad();
-            
+
             // Level 1: Initial encoding
             let initial = numeric_keypad.encode_sequence(sequence, None)?;
-            
+
             // Process robot levels sequentially since each level depends on the previous
             let mut current = initial;
             let mut results = Vec::with_capacity(ROBOT_LEVELS);
-            
+
             for _ in 0..ROBOT_LEVELS {
                 let next = directional_keypad.encode_sequence(&current, None)?;
                 results.push(next.clone());
                 current = next;
             }
-            
+
             // Join intermediate results
             let robot_output = results.join("");
-            
+
             // Final encoding
             let final_sequence = directional_keypad.encode_sequence(&robot_output, None)?;
             Ok((sequence.clone(), final_sequence))
@@ -38,15 +38,19 @@ pub fn process(input: &str) -> miette::Result<(HashMap<String, String>, usize)> 
         .collect::<miette::Result<HashMap<_, _>>>()?;
 
     // Calculate complexity in parallel
-    let complexity = solutions.par_iter().map(|(k, v)| {
-        let key_nums = k.chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .trim_start_matches('0')
-            .parse::<usize>()
-            .unwrap_or(0);
-        key_nums * v.len()
-    }).sum();
+    let complexity = solutions
+        .par_iter()
+        .map(|(k, v)| {
+            let key_nums = k
+                .chars()
+                .filter(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .trim_start_matches('0')
+                .parse::<usize>()
+                .unwrap_or(0);
+            key_nums * v.len()
+        })
+        .sum();
 
     Ok((solutions, complexity))
 }
@@ -78,12 +82,27 @@ mod tests {
 179A
 456A
 379A";
-        let expected: HashMap<String,String> = vec![
-            ("029A", "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A"),
-            ("980A", "<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A"),
-            ("179A", "<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A"),
-            ("456A", "<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A"),
-            ("379A", "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A"),
+        let expected: HashMap<String, String> = vec![
+            (
+                "029A",
+                "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A",
+            ),
+            (
+                "980A",
+                "<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A",
+            ),
+            (
+                "179A",
+                "<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A",
+            ),
+            (
+                "456A",
+                "<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A",
+            ),
+            (
+                "379A",
+                "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A",
+            ),
         ]
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -151,7 +170,8 @@ mod tests {
         let door_code = "029A";
         let robot1_sequence = "<A^A>^^AvvvA";
         let robot2_sequence = "v<<A>>^A<A>AvA<^AA>A<vAAA>^A";
-        let robot3_sequence = "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A";
+        let robot3_sequence =
+            "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A";
 
         let level1 = numeric_keypad.encode_sequence(door_code, None)?;
         println!("Level 1: {}", level1);

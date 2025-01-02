@@ -1,7 +1,6 @@
-
 use miette::{Diagnostic, Result};
-use thiserror::Error;
 use rayon::prelude::*;
+use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic)]
 #[error("Failed to parse integer")]
@@ -17,10 +16,13 @@ pub fn process(input: &str) -> miette::Result<String> {
         .map(|line| line.parse::<usize>().map_err(ParseError))
         .collect::<Result<Vec<usize>, _>>()?;
 
-    let result = input.par_iter_mut().map(|secret_number| {
-        evolution_process(secret_number, VALUE_COUNT);
-        *secret_number
-    }).sum::<usize>();
+    let result = input
+        .par_iter_mut()
+        .map(|secret_number| {
+            evolution_process(secret_number, VALUE_COUNT);
+            *secret_number
+        })
+        .sum::<usize>();
 
     Ok(result.to_string())
 }
@@ -61,8 +63,6 @@ pub fn evolution_process(secret_number: &mut usize, iterations: usize) {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
 
     #[test]
@@ -107,7 +107,12 @@ mod tests {
 
         for (i, value) in expected.lines().enumerate() {
             evolution_process(&mut secret_number, 1);
-            assert_eq!(value.parse::<usize>().unwrap(), secret_number, "Failed at step {}", i + 1);
+            assert_eq!(
+                value.parse::<usize>().unwrap(),
+                secret_number,
+                "Failed at step {}",
+                i + 1
+            );
         }
     }
 }

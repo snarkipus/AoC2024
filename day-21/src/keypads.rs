@@ -143,17 +143,18 @@ impl<K: Key> Keypad<K> {
         if sequence.is_empty() {
             return Ok("A".to_string());
         }
-    
+
         let mut result = String::new();
-        let mut current_key = current.unwrap_or_else(|| K::from_char('A').expect("Invalid start character: A"));
+        let mut current_key =
+            current.unwrap_or_else(|| K::from_char('A').expect("Invalid start character: A"));
         let mut chars = sequence.chars();
-    
+
         while let Some(c) = chars.next() {
-            let target = K::from_char(c)
-                .ok_or_else(|| miette::miette!("Invalid character: {}", c))?;
-    
+            let target =
+                K::from_char(c).ok_or_else(|| miette::miette!("Invalid character: {}", c))?;
+
             let path_options = self.find_paths(current_key, target)?;
-    
+
             let mut scored_paths: Vec<(String, usize)> = path_options
                 .into_iter()
                 .filter_map(|path| {
@@ -162,17 +163,17 @@ impl<K: Key> Keypad<K> {
                         .map(|encoded| (encoded.clone(), self.score_encoded_path(&encoded)))
                 })
                 .collect();
-    
+
             scored_paths.sort_by_key(|(path, score)| (*score, path.len()));
-    
+
             if let Some((best_path, _)) = scored_paths.last() {
                 result.push_str(best_path);
             }
-    
+
             result.push('A');
             current_key = target;
         }
-    
+
         Ok(result)
     }
 
